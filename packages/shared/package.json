@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@validatehome/config": "workspace:*",
+    "@vitest/coverage-v8": "^4.0.18",
     "vitest": "^4.0.18"
   }
 }
