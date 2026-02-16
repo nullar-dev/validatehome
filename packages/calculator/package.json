@@ -20,11 +20,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@validatehome/shared": "workspace:*",
-    "@validatehome/rules-engine": "workspace:*"
+    "@validatehome/rules-engine": "workspace:*",
+    "@validatehome/shared": "workspace:*"
   },
   "devDependencies": {
     "@validatehome/config": "workspace:*",
-    "vitest": "^3.0.4"
+    "vitest": "^4.0.18"
   }
 }
