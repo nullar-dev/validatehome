@@ -2,31 +2,37 @@ import { describe, expect, it } from "vitest";
 import { createRulesEngine, evaluateStackability } from "../engine.js";
 import type { ProgramFact, StackingRule } from "../types.js";
 
-const federalTaxCredit: ProgramFact = {
+function makeRule(
+  overrides: Partial<StackingRule> & Pick<StackingRule, "ruleId" | "conditions" | "event">,
+): StackingRule {
+  return { jurisdiction: "US", ...overrides };
+}
+
+function makeProgram(overrides: Partial<ProgramFact> & Pick<ProgramFact, "id">): ProgramFact {
+  return { name: overrides.id, type: "rebate", level: "state", jurisdiction: "US", ...overrides };
+}
+
+const federalTaxCredit = makeProgram({
   id: "federal-25c",
   name: "IRS 25C Tax Credit",
   type: "tax_credit",
   level: "federal",
   code: "25C",
-  jurisdiction: "US",
-};
+});
 
-const stateRebate: ProgramFact = {
+const stateRebate = makeProgram({
   id: "ca-tech",
   name: "CA TECH Clean Energy",
-  type: "rebate",
-  level: "state",
   code: "TECH",
   jurisdiction: "US-CA",
-};
+});
 
-const utilityRebate: ProgramFact = {
+const utilityRebate = makeProgram({
   id: "pge-rebate",
   name: "PG&E Heat Pump Rebate",
-  type: "rebate",
   level: "utility",
   jurisdiction: "US-CA-PGE",
-};
+});
 
 describe("createRulesEngine", () => {
   it("creates an engine with no rules", () => {
@@ -36,17 +42,11 @@ describe("createRulesEngine", () => {
 
   it("creates an engine with rules", () => {
     const rules: StackingRule[] = [
-      {
+      makeRule({
         ruleId: "test-rule",
-        jurisdiction: "US",
-        conditions: {
-          all: [{ fact: "program_a.type", operator: "equal", value: "tax_credit" }],
-        },
-        event: {
-          type: "stackable",
-          params: { explanation: "Test rule" },
-        },
-      },
+        conditions: { all: [{ fact: "program_a.type", operator: "equal", value: "tax_credit" }] },
+        event: { type: "stackable", params: { explanation: "Test rule" } },
+      }),
     ];
     const engine = createRulesEngine(rules);
     expect(engine).toBeDefined();
@@ -64,9 +64,8 @@ describe("evaluateStackability", () => {
 
   it("returns not_stackable when rule blocks combination", async () => {
     const rules: StackingRule[] = [
-      {
+      makeRule({
         ruleId: "block-same-level",
-        jurisdiction: "US",
         conditions: {
           all: [
             { fact: "program_a.level", operator: "equal", value: "state" },
@@ -75,22 +74,16 @@ describe("evaluateStackability", () => {
         },
         event: {
           type: "not_stackable",
-          params: {
-            explanation: "Cannot combine two state-level rebates for the same measure.",
-          },
+          params: { explanation: "Cannot combine two state-level rebates for the same measure." },
         },
-      },
+      }),
     ];
     const engine = createRulesEngine(rules);
-
-    const stateRebateB: ProgramFact = {
+    const stateRebateB = makeProgram({
       id: "ny-clean-heat",
       name: "NY Clean Heat",
-      type: "rebate",
-      level: "state",
       jurisdiction: "US-NY",
-    };
-
+    });
     const result = await evaluateStackability(engine, stateRebate, stateRebateB);
 
     expect(result.canStack).toBe(false);
@@ -99,9 +92,8 @@ describe("evaluateStackability", () => {
 
   it("returns stackable with order when rule specifies application order", async () => {
     const rules: StackingRule[] = [
-      {
+      makeRule({
         ruleId: "federal-first",
-        jurisdiction: "US",
         conditions: {
           all: [
             { fact: "program_a.type", operator: "equal", value: "tax_credit" },
@@ -116,7 +108,7 @@ describe("evaluateStackability", () => {
             order: ["program_a", "program_b"],
           },
         },
-      },
+      }),
     ];
     const engine = createRulesEngine(rules);
     const result = await evaluateStackability(engine, federalTaxCredit, stateRebate);
@@ -130,9 +122,8 @@ describe("evaluateStackability", () => {
 
   it("returns conditional result with cap", async () => {
     const rules: StackingRule[] = [
-      {
+      makeRule({
         ruleId: "capped-stack",
-        jurisdiction: "US",
         conditions: {
           all: [
             { fact: "program_a.level", operator: "equal", value: "federal" },
@@ -146,7 +137,7 @@ describe("evaluateStackability", () => {
             cap: 5000,
           },
         },
-      },
+      }),
     ];
     const engine = createRulesEngine(rules);
     const result = await evaluateStackability(engine, federalTaxCredit, utilityRebate);
@@ -158,7 +149,7 @@ describe("evaluateStackability", () => {
 
   it("returns conditional result with reduction percentage", async () => {
     const rules: StackingRule[] = [
-      {
+      makeRule({
         ruleId: "reduced-stack",
         jurisdiction: "UK",
         conditions: {
@@ -174,27 +165,25 @@ describe("evaluateStackability", () => {
             reductionPct: 50,
           },
         },
-      },
+      }),
     ];
     const engine = createRulesEngine(rules);
-
-    const busProgram: ProgramFact = {
+    const busProgram = makeProgram({
       id: "uk-bus",
       name: "Boiler Upgrade Scheme",
       type: "grant",
       level: "federal",
       code: "BUS",
       jurisdiction: "UK",
-    };
-    const eco4Program: ProgramFact = {
+    });
+    const eco4Program = makeProgram({
       id: "uk-eco4",
       name: "ECO4",
       type: "grant",
       level: "federal",
       code: "ECO4",
       jurisdiction: "UK",
-    };
-
+    });
     const result = await evaluateStackability(engine, busProgram, eco4Program);
 
     expect(result.canStack).toBe(false);
@@ -203,7 +192,7 @@ describe("evaluateStackability", () => {
 
   it("does not match rules when conditions are not met", async () => {
     const rules: StackingRule[] = [
-      {
+      makeRule({
         ruleId: "only-grants",
         jurisdiction: "AU",
         conditions: {
@@ -212,11 +201,8 @@ describe("evaluateStackability", () => {
             { fact: "program_b.type", operator: "equal", value: "grant" },
           ],
         },
-        event: {
-          type: "not_stackable",
-          params: { explanation: "Cannot combine two grants." },
-        },
-      },
+        event: { type: "not_stackable", params: { explanation: "Cannot combine two grants." } },
+      }),
     ];
     const engine = createRulesEngine(rules);
 
@@ -228,9 +214,8 @@ describe("evaluateStackability", () => {
 
   it("handles rules with any conditions", async () => {
     const rules: StackingRule[] = [
-      {
+      makeRule({
         ruleId: "any-federal",
-        jurisdiction: "US",
         conditions: {
           any: [
             { fact: "program_a.level", operator: "equal", value: "federal" },
@@ -244,7 +229,7 @@ describe("evaluateStackability", () => {
             order: ["program_a", "program_b"],
           },
         },
-      },
+      }),
     ];
     const engine = createRulesEngine(rules);
     const result = await evaluateStackability(engine, federalTaxCredit, stateRebate);
@@ -255,20 +240,15 @@ describe("evaluateStackability", () => {
 
   it("handles null cap in result", async () => {
     const rules: StackingRule[] = [
-      {
+      makeRule({
         ruleId: "no-cap",
         jurisdiction: "CA",
-        conditions: {
-          all: [{ fact: "program_a.level", operator: "equal", value: "federal" }],
-        },
+        conditions: { all: [{ fact: "program_a.level", operator: "equal", value: "federal" }] },
         event: {
           type: "stackable",
-          params: {
-            explanation: "No cap on combined benefits.",
-            cap: null,
-          },
+          params: { explanation: "No cap on combined benefits.", cap: null },
         },
-      },
+      }),
     ];
     const engine = createRulesEngine(rules);
     const result = await evaluateStackability(engine, federalTaxCredit, stateRebate);

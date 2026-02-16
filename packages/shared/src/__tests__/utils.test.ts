@@ -38,22 +38,16 @@ describe("isValidPostalCode", () => {
 });
 
 describe("normalizePostalCode", () => {
-  it("normalizes UK postcodes with consistent spacing", () => {
+  it("normalizes UK postcodes with consistent spacing and handles short codes", () => {
     expect(normalizePostalCode("sw1a1aa", "UK")).toBe("SW1A 1AA");
     expect(normalizePostalCode("SW1A  1AA", "UK")).toBe("SW1A 1AA");
-  });
-
-  it("returns short UK postcodes without spacing", () => {
     expect(normalizePostalCode("M1", "UK")).toBe("M1");
     expect(normalizePostalCode("  e1  ", "UK")).toBe("E1");
   });
 
-  it("normalizes CA postal codes with consistent spacing", () => {
+  it("normalizes CA postal codes with consistent spacing and handles non-standard lengths", () => {
     expect(normalizePostalCode("k1a0b1", "CA")).toBe("K1A 0B1");
     expect(normalizePostalCode("K1A  0B1", "CA")).toBe("K1A 0B1");
-  });
-
-  it("returns non-standard length CA postal codes as-is", () => {
     expect(normalizePostalCode("K1A", "CA")).toBe("K1A");
     expect(normalizePostalCode("K1A0B", "CA")).toBe("K1A0B");
   });
