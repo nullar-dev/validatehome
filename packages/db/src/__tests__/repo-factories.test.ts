@@ -185,6 +185,20 @@ describe("jurisdictionRepo", () => {
     });
     expect(result).toEqual(newRow);
   });
+
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = jurisdictionRepo(db);
+
+    await expect(
+      repo.create({
+        name: "Test",
+        isoCode: "T",
+        country: "US",
+        level: "federal",
+      }),
+    ).rejects.toThrow("Failed to create jurisdiction");
+  });
 });
 
 describe("programRepo", () => {
@@ -238,6 +252,14 @@ describe("programRepo", () => {
     const repo = programRepo(db);
     const result = await repo.findBySlug("test-program", "US");
     expect(result).toEqual(mockRow.program);
+  });
+
+  it("findBySlug treats non-country second arg as legacy slug", async () => {
+    const mockRow = { id: "1", slug: "legacy-slug" };
+    const db = createMockDb([mockRow]);
+    const repo = programRepo(db);
+    const result = await repo.findBySlug("legacy-slug", "not-a-country");
+    expect(result).toEqual(mockRow);
   });
 
   it("findAll returns rows when unpaginated", async () => {
@@ -296,6 +318,23 @@ describe("programRepo", () => {
     });
   });
 
+  it("findAll returns paginated data with category filter", async () => {
+    const db = createMockDbWithSelectBatches([
+      [{ program: { id: "3", name: "Program 3" } }],
+      [{ count: 1 }],
+    ]);
+    const repo = programRepo(db);
+    const result = await repo.findAll({ categoryId: "cat-1" }, { page: 1, limit: 10 });
+
+    expect(result).toEqual({
+      data: [{ id: "3", name: "Program 3" }],
+      total: 1,
+      page: 1,
+      limit: 10,
+      totalPages: 1,
+    });
+  });
+
   it("findById returns undefined when not found", async () => {
     const db = createMockDb([]);
     const repo = programRepo(db);
@@ -339,6 +378,19 @@ describe("programRepo", () => {
     expect(result).toEqual(newRow);
   });
 
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = programRepo(db);
+
+    await expect(
+      repo.create({
+        jurisdictionId: "j-1",
+        name: "New Program",
+        slug: "new-program",
+      }),
+    ).rejects.toThrow("Failed to create program");
+  });
+
   it("createMany returns inserted rows", async () => {
     const inserted = [{ id: "b-1" }, { id: "b-2" }];
     const db = createMockDb(inserted);
@@ -358,12 +410,28 @@ describe("programRepo", () => {
     expect(result).toEqual(updated);
   });
 
+  it("update throws when program does not exist", async () => {
+    const db = createMockDb([]);
+    const repo = programRepo(db);
+    await expect(repo.update("missing", { name: "Updated" })).rejects.toThrow(
+      "Program not found: missing",
+    );
+  });
+
   it("createVersion returns version row", async () => {
     const version = { id: "v-1", programId: "p-1" };
     const db = createMockDb([version]);
     const repo = programRepo(db);
     const result = await repo.createVersion("p-1", { status: "open" }, ["status"], "admin");
     expect(result).toEqual(version);
+  });
+
+  it("createVersion throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = programRepo(db);
+    await expect(repo.createVersion("p-1", { status: "open" })).rejects.toThrow(
+      "Failed to create program version for: p-1",
+    );
   });
 
   it("findVersions returns rows", async () => {
@@ -448,6 +516,14 @@ describe("benefitRepo", () => {
     const result = await repo.create({ programId: "p-1", type: "rebate", currency: "USD" });
     expect(result).toEqual(newRow);
   });
+
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = benefitRepo(db);
+    await expect(
+      repo.create({ programId: "p-1", type: "rebate", currency: "USD" }),
+    ).rejects.toThrow("Failed to create benefit");
+  });
 });
 
 describe("sourceRepo", () => {
@@ -510,12 +586,26 @@ describe("sourceRepo", () => {
     expect(result).toEqual(newRow);
   });
 
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = sourceRepo(db);
+    await expect(
+      repo.create({ url: "https://example.com", jurisdictionId: "j-1" }),
+    ).rejects.toThrow("Failed to create source");
+  });
+
   it("markCrawled returns updated row", async () => {
     const updated = { id: "s-1", lastCrawlAt: new Date() };
     const db = createMockDb([updated]);
     const repo = sourceRepo(db);
     const result = await repo.markCrawled("s-1", "etag-1", "Mon, 01 Jan 2024");
     expect(result).toEqual(updated);
+  });
+
+  it("markCrawled throws when source is missing", async () => {
+    const db = createMockDb([]);
+    const repo = sourceRepo(db);
+    await expect(repo.markCrawled("missing")).rejects.toThrow("Source not found: missing");
   });
 
   it("markCrawled handles missing etag and lastModified", async () => {
@@ -532,6 +622,12 @@ describe("sourceRepo", () => {
     const repo = sourceRepo(db);
     const result = await repo.deactivate("s-1");
     expect(result).toEqual(updated);
+  });
+
+  it("deactivate throws when source is missing", async () => {
+    const db = createMockDb([]);
+    const repo = sourceRepo(db);
+    await expect(repo.deactivate("missing")).rejects.toThrow("Source not found: missing");
   });
 });
 
@@ -555,6 +651,18 @@ describe("crawlSnapshotRepo", () => {
       contentHash: "sha256-abc123",
     });
     expect(result).toEqual(newRow);
+  });
+
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = crawlSnapshotRepo(db);
+    await expect(
+      repo.create({
+        sourceId: "s-1",
+        rawHtmlPath: "artifacts/s-1/2026-02-16/abc.html",
+        contentHash: "sha256-abc123",
+      }),
+    ).rejects.toThrow("Failed to create crawl snapshot");
   });
 
   it("findLatestBySource returns first row", async () => {
@@ -613,6 +721,20 @@ describe("diffRepo", () => {
     expect(result).toEqual(newRow);
   });
 
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = diffRepo(db);
+    await expect(
+      repo.create({
+        sourceId: "s-1",
+        oldSnapshotId: "cs-1",
+        newSnapshotId: "cs-2",
+        diffType: "text",
+        significanceScore: 75,
+      }),
+    ).rejects.toThrow("Failed to create diff");
+  });
+
   it("findUnreviewed returns rows", async () => {
     const mockRows = [{ id: "d-1", reviewed: false }];
     const db = createMockDb(mockRows);
@@ -643,6 +765,14 @@ describe("diffRepo", () => {
     const result = await repo.markReviewed("d-1", "admin@test.com");
     expect(result).toEqual(updated);
   });
+
+  it("markReviewed throws when diff is missing", async () => {
+    const db = createMockDb([]);
+    const repo = diffRepo(db);
+    await expect(repo.markReviewed("missing", "admin@test.com")).rejects.toThrow(
+      "Diff not found: missing",
+    );
+  });
 });
 
 describe("verificationRepo", () => {
@@ -664,6 +794,18 @@ describe("verificationRepo", () => {
       verificationMethod: "auto_crawl",
     });
     expect(result).toEqual(newRow);
+  });
+
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = verificationRepo(db);
+    await expect(
+      repo.create({
+        programId: "p-1",
+        verifiedBy: "system",
+        verificationMethod: "auto_crawl",
+      }),
+    ).rejects.toThrow("Failed to create verification");
   });
 
   it("findLatestByProgram returns first row", async () => {
@@ -794,6 +936,18 @@ describe("stackabilityRepo", () => {
     });
     expect(result).toEqual(newRow);
   });
+
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = stackabilityRepo(db);
+    await expect(
+      repo.create({
+        programAId: "p-1",
+        programBId: "p-2",
+        constraintType: "cannot_combine",
+      }),
+    ).rejects.toThrow("Failed to create stackability constraint");
+  });
 });
 
 describe("apiKeyRepo", () => {
@@ -833,12 +987,30 @@ describe("apiKeyRepo", () => {
     expect(result).toEqual(newRow);
   });
 
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = apiKeyRepo(db);
+    await expect(
+      repo.create({
+        customerName: "Test Key",
+        keyHash: "hash",
+        keyPrefix: "vh_",
+      }),
+    ).rejects.toThrow("Failed to create API key");
+  });
+
   it("deactivate returns updated row", async () => {
     const updated = { id: "ak-1", isActive: false };
     const db = createMockDb([updated]);
     const repo = apiKeyRepo(db);
     const result = await repo.deactivate("ak-1");
     expect(result).toEqual(updated);
+  });
+
+  it("deactivate throws when key is missing", async () => {
+    const db = createMockDb([]);
+    const repo = apiKeyRepo(db);
+    await expect(repo.deactivate("missing")).rejects.toThrow("API key not found: missing");
   });
 
   it("touchLastUsed does not throw", async () => {
