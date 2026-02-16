@@ -57,3 +57,10 @@ export function calculateSavingsPercentage(stickerPrice: number, netCost: number
   if (stickerPrice <= 0) return 0;
   return Math.round(((stickerPrice - netCost) / stickerPrice) * 100);
 }
+
+export function truncate(text: string, maxLength: number, suffix = "..."): string {
+  if (maxLength < 0) maxLength = 0;
+  if (text.length <= maxLength) return text;
+  const end = Math.max(0, maxLength - suffix.length);
+  return `${text.slice(0, end)}${suffix}`;
+}
