@@ -1,4 +1,55 @@
-# ValidateHome: Implementation Plan
+This plan is structured for high-performance engineering and maximum RPM. It preserves your core "Incentive Engine" and "Diff-Engine" logic while optimizing for 2026 search trends and high-intent lead generation.
+
+## Project: ValidateHome (The Incentive & Rebate Radar)
+
+**Concept:** A real-time "Incentive Engine" providing live status, stackability, and net-cost calculations for home upgrades across Tier-1 countries.
+
+### The Core Product: "The Incentive Engine"
+
+Unlike static blogs, this is a Live Status Database that tracks programs at the ZIP/Postcode level.
+
+- **Real-Time Data:** Tracks status (Open, Waitlist, Reserved, Funded) for Heat Pumps, Solar, Insulation, EV Chargers, and more.
+- **The Net-Cost Calculator:** Shows the "Sticker Price" vs. the "Net Cost" after stacking Federal, State/Provincial, and Utility-level rebates.
+- **Verified Proof:** Every data point includes a Last Verified timestamp, a link to the Canonical Source, and a Changelog Diff.
+
+### The Developer Moat (The "AI-Killer")
+
+Traditional AI and SEO blogs fail because they can't track Policy Churn. Your technical edge is a data pipeline that automates accuracy:
+
+- **Crawl & Parse Engine:** Monitors official .gov, .org.uk, and utility portals.
+- **Screenshot-Diff Tracking:** Automatically detects changes in program terms, budgets, or deadlines.
+- **Normalization Schema:** Maps fragmented data into one universal structure: Jurisdiction -> Program Name -> Eligibility -> Max Amount -> Budget Status -> Deadlines.
+- **The Stacker Logic:** A rule-based engine that validates which grants can be combined (e.g., "Cannot combine State Rebate A with Federal Credit B").
+
+### Growth & Traffic Strategy (2026 Optimization)
+
+Focus on High-Intent Program Pages to capture users who are ready to buy.
+
+- **Program-Specific "Status" Pages:** SEO-optimized for queries like "Is the UK Boiler Upgrade Scheme still funded?" or "IRS 25C Tax Credit 2026 eligibility."
+- **Local Landing Pages:** Programmatic SEO pages for every major State/Postcode (e.g., "Best Energy Rebates in [City/ZIP Code]").
+- **The Alert Product:** A "Notify Me" feature for closed or "coming soon" programs (e.g., HEAR/HOMES programs in the US). This builds a high-value email list of homeowners.
+- **Social Hook:** Shareable "Budget Alerts" on Reddit and X when a major program hits 90% capacity.
+
+### Monetization & High RPM Logic
+
+This niche sits in the "High-Consideration" category, leading to premium ad rates.
+
+- **RPM Goal:** $25-$60+ Session RPM (Targeting Mediavine/Raptive-level stacks).
+- **Lead-Gen:** High-margin referrals to vetted installers and energy auditors who handle the rebate paperwork.
+- **Affiliate Revenue:** Strategic links for hardware (Smart Thermostats, DIY Insulation kits) and financing providers.
+- **B2B Data Licensing:** Selling the "Live Rebate Feed" via API to HVAC/Solar contractors for their own websites.
+
+### 2026 Market Verdict
+
+This is a "Sure Bet" because of the Perfect Storm:
+
+- **Policy Churn:** Constant changes in 2025-2026 (IRS credits, UK BUS scale-up, AU state shifts) create mass confusion.
+- **AI Failure:** LLMs cannot provide the "Real-Time Status" required to avoid financial mistakes.
+- **High Stakes:** Users aren't looking for "tips"; they are looking to avoid $5,000+ mistakes.
+
+---
+
+# Implementation Plan
 
 > Living document tracking implementation progress. Update as phases complete.
 
@@ -14,7 +65,7 @@
 - [x] Shared packages (types, constants, utils for US/UK/AU/CA)
 - [x] Net-cost calculator package with 26 passing tests
 - [x] Rules engine package (json-rules-engine stackability)
-- [x] Next.js 15 web app (App Router, Tailwind, shadcn/ui CSS vars, SSG)
+- [x] Next.js 16 web app (App Router, Tailwind v4, shadcn/ui CSS vars, SSG)
 - [x] Hono API server (programs, calculator, health routes)
 - [x] Refine admin dashboard scaffold (Ant Design)
 - [x] Inngest crawl worker scaffold
@@ -74,7 +125,7 @@
 ## Architecture Overview
 
 ```
-apps/web          → Next.js 15 (SSG/ISR, programmatic SEO)
+apps/web          → Next.js 16 (SSG/ISR, programmatic SEO)
 apps/api          → Hono (REST API, OpenAPI)
 apps/admin        → Refine + Ant Design (ops dashboard)
 apps/workers      → Inngest (crawl/parse/diff pipeline)
@@ -92,7 +143,7 @@ infra/            → SST v3 (AWS IaC)
 | Layer | Choice |
 |-------|--------|
 | Monorepo | pnpm 9 + Turborepo |
-| Frontend | Next.js 15 (App Router) |
+| Frontend | Next.js 16 (App Router) |
 | API | Hono |
 | Database | PostgreSQL (Neon) + Drizzle ORM |
 | Queue | Inngest |
