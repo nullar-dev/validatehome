@@ -18,7 +18,6 @@ export const sharedConfig = defineConfig({
         "dist/",
         "**/*.d.ts",
         "**/*.config.*",
-        "**/index.ts",
         "**/__tests__/**",
         "**/*.test.*",
         "**/*.spec.*",

@@ -43,9 +43,19 @@ describe("normalizePostalCode", () => {
     expect(normalizePostalCode("SW1A  1AA", "UK")).toBe("SW1A 1AA");
   });
 
+  it("returns short UK postcodes without spacing", () => {
+    expect(normalizePostalCode("M1", "UK")).toBe("M1");
+    expect(normalizePostalCode("  e1  ", "UK")).toBe("E1");
+  });
+
   it("normalizes CA postal codes with consistent spacing", () => {
     expect(normalizePostalCode("k1a0b1", "CA")).toBe("K1A 0B1");
     expect(normalizePostalCode("K1A  0B1", "CA")).toBe("K1A 0B1");
+  });
+
+  it("returns non-standard length CA postal codes as-is", () => {
+    expect(normalizePostalCode("K1A", "CA")).toBe("K1A");
+    expect(normalizePostalCode("K1A0B", "CA")).toBe("K1A0B");
   });
 
   it("trims and uppercases US ZIP codes", () => {

@@ -71,10 +71,44 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Run tests with coverage
-        run: pnpm test:coverage
+        run: pnpm test:coverage --force
+
+      - name: Verify coverage thresholds
+        if: always() && matrix.node-version == 22
+        run: |
+          echo "## Coverage Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Package | Statements | Branches | Functions | Lines | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---------|-----------|----------|-----------|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          THRESHOLD=80
+          FAILED=0
+          for summary in packages/*/coverage/coverage-summary.json; do
+            if [ -f "$summary" ]; then
+              PKG=$(echo "$summary" | cut -d'/' -f2)
+              STMTS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$summary','utf8')).total.statements.pct)")
+              BRANCH=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$summary','utf8')).total.branches.pct)")
+              FUNCS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$summary','utf8')).total.functions.pct)")
+              LINES=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$summary','utf8')).total.lines.pct)")
+              STATUS="✅"
+              for PCT in $STMTS $BRANCH $FUNCS $LINES; do
+                if [ "$(node -e "console.log($PCT < $THRESHOLD ? 1 : 0)")" = "1" ]; then
+                  STATUS="❌"
+                  FAILED=1
+                fi
+              done
+              echo "| $PKG | ${STMTS}% | ${BRANCH}% | ${FUNCS}% | ${LINES}% | $STATUS |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$FAILED" = "1" ]; then
+            echo "❌ **Coverage below ${THRESHOLD}% threshold — see table above.**" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          else
+            echo "✅ **All packages meet ${THRESHOLD}% coverage threshold.**" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload coverage
-        if: matrix.node-version == 22
+        if: always() && matrix.node-version == 22
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: coverage
