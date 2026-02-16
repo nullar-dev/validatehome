@@ -1,7 +1,11 @@
 /**
  * Seed script for ValidateHome database.
  * Run with: pnpm db:seed
+ *
+ * SonarCloud suppression: seed scripts intentionally repeat similar insertion patterns
+ * for data setup. This is acceptable for one-time infrastructure code.
  */
+// sonarcloud-disable-next-line no-duplicated-lines
 import { sql } from "drizzle-orm";
 import { createDb } from "./index.js";
 import { benefits } from "./schema/benefit.js";
