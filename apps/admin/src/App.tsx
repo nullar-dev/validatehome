@@ -1,4 +1,4 @@
-import { RefineThemes, ThemedLayoutV2, useNotificationProvider } from "@refinedev/antd";
+import { RefineThemes, ThemedLayout, useNotificationProvider } from "@refinedev/antd";
 import { Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/react-router";
 import dataProvider from "@refinedev/simple-rest";
@@ -50,7 +50,7 @@ export function App() {
             ]}
           >
             <Routes>
-              <Route element={<ThemedLayoutV2 Title={() => <span>ValidateHome</span>} />}>
+              <Route element={<ThemedLayout Title={() => <span>ValidateHome</span>} />}>
                 <Route index element={<DashboardPage />} />
               </Route>
             </Routes>
