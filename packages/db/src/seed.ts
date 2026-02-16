@@ -555,8 +555,10 @@ async function seed() {
   }
 }
 
-seed().catch((err) => {
+try {
+  await seed();
+} catch (err) {
   const message = err instanceof Error ? (err.stack ?? err.message) : String(err);
   logError(`Seed failed: ${message}`);
   process.exitCode = 1;
-});
+}

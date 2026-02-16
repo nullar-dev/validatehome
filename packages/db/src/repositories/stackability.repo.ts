@@ -28,14 +28,14 @@ export function stackabilityRepo(db: DbClient) {
 
       if (programIds.length === 0) return [];
 
-      const ids = programIds.map((p) => p.id);
+      const ids = new Set(programIds.map((p) => p.id));
       return db
         .select()
         .from(stackabilityConstraints)
         .where(
           or(
-            inArray(stackabilityConstraints.programAId, ids),
-            inArray(stackabilityConstraints.programBId, ids),
+            inArray(stackabilityConstraints.programAId, [...ids]),
+            inArray(stackabilityConstraints.programBId, [...ids]),
           ),
         );
     },

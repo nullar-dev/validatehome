@@ -11,33 +11,37 @@ import { stackabilityRepo } from "../repositories/stackability.repo.js";
 import type { DbClient } from "../repositories/types.js";
 import { verificationRepo } from "../repositories/verification.repo.js";
 
+function attachProxyMethods(proxy: Promise<unknown[]> & Record<string, unknown>) {
+  const methods = [
+    "select",
+    "insert",
+    "update",
+    "delete",
+    "from",
+    "where",
+    "innerJoin",
+    "leftJoin",
+    "orderBy",
+    "limit",
+    "offset",
+    "set",
+    "values",
+    "returning",
+    "$dynamic",
+  ];
+  for (const method of methods) {
+    proxy[method] = vi.fn(() => proxy);
+  }
+}
+
 /**
  * Creates a mock DbClient that returns chainable query builders.
  * Each terminal method (limit, returning, etc.) resolves to the provided rows.
  */
 function createMockDb(rows: unknown[] = []) {
-  const makeChain = (): Promise<unknown[]> & Record<string, unknown> => {
+  const makeChain: () => Promise<unknown[]> & Record<string, unknown> = () => {
     const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
-    const methods = [
-      "select",
-      "insert",
-      "update",
-      "delete",
-      "from",
-      "where",
-      "innerJoin",
-      "leftJoin",
-      "orderBy",
-      "limit",
-      "offset",
-      "set",
-      "values",
-      "returning",
-      "$dynamic",
-    ];
-    for (const method of methods) {
-      proxy[method] = vi.fn(() => proxy);
-    }
+    attachProxyMethods(proxy);
     return proxy;
   };
 
@@ -55,26 +59,7 @@ function createMockDb(rows: unknown[] = []) {
 function createMockDbWithSelectBatches(selectBatches: unknown[][]) {
   const makeChain = (rows: unknown[]): Promise<unknown[]> & Record<string, unknown> => {
     const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
-    const methods = [
-      "select",
-      "insert",
-      "update",
-      "delete",
-      "from",
-      "where",
-      "innerJoin",
-      "leftJoin",
-      "orderBy",
-      "limit",
-      "offset",
-      "set",
-      "values",
-      "returning",
-      "$dynamic",
-    ];
-    for (const method of methods) {
-      proxy[method] = vi.fn(() => proxy);
-    }
+    attachProxyMethods(proxy);
     return proxy;
   };
 

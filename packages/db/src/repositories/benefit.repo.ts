@@ -27,7 +27,7 @@ export function benefitRepo(db: DbClient) {
         .limit(1);
 
       const mapping = mappings[0];
-      if (!mapping || !mapping.jurisdictionIds.length) {
+      if (!mapping?.jurisdictionIds?.length) {
         return [];
       }
 
