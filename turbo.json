@@ -1,8 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "globalDependencies": ["biome.json", "pnpm-lock.yaml"],
+  "globalEnv": ["NODE_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "next.config.ts", "vite.config.ts"],
+      "env": ["NEXT_PUBLIC_API_URL", "NEXT_PUBLIC_SITE_URL"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
@@ -10,17 +15,21 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"]
     },
     "test": {
       "dependsOn": ["^build"],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "vitest.config.ts"],
       "outputs": ["coverage/**"]
     },
     "test:coverage": {
       "dependsOn": ["^build"],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "vitest.config.ts"],
       "outputs": ["coverage/**"]
     },
     "db:generate": {

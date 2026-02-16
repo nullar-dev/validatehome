@@ -6,6 +6,7 @@ pre-commit:
       run: pnpm biome check --no-errors-on-unmatched {staged_files}
 
     - name: typecheck
+      glob: "*.{ts,tsx}"
       run: pnpm typecheck
 
 commit-msg:
@@ -13,9 +14,9 @@ commit-msg:
     - name: conventional commits
       run: |
         MESSAGE=$(head -1 {1})
-        if ! echo "$MESSAGE" | grep -qE '^(feat|fix|refactor|docs|test|chore|perf|ci)(\(.+\))?: .+'; then
+        if ! echo "$MESSAGE" | grep -qE '^(feat|fix|refactor|docs|test|chore|perf|ci)(\(.+\))?!?: .+'; then
           echo "Commit message must follow conventional commits format:"
-          echo "  <type>: <description>"
+          echo "  <type>[optional scope][!]: <description>"
           echo "  Types: feat, fix, refactor, docs, test, chore, perf, ci"
           exit 1
         fi
