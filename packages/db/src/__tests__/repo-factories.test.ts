@@ -38,6 +38,17 @@ function attachProxyMethods(proxy: Promise<unknown[]> & Record<string, unknown>)
  * Creates a mock DbClient that returns chainable query builders.
  * Each terminal method (limit, returning, etc.) resolves to the provided rows.
  */
+function attachDbMethods(
+  db: Record<string, unknown>,
+  makeChain: () => Promise<unknown[]> & Record<string, unknown>,
+) {
+  db.select = vi.fn(() => makeChain());
+  db.insert = vi.fn(() => makeChain());
+  db.update = vi.fn(() => makeChain());
+  db.delete = vi.fn(() => makeChain());
+  db.transaction = vi.fn();
+}
+
 function createMockDb(rows: unknown[] = []) {
   const makeChain: () => Promise<unknown[]> & Record<string, unknown> = () => {
     const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
@@ -46,12 +57,7 @@ function createMockDb(rows: unknown[] = []) {
   };
 
   const chain: Record<string, unknown> = {};
-
-  chain.select = vi.fn(() => makeChain());
-  chain.insert = vi.fn(() => makeChain());
-  chain.update = vi.fn(() => makeChain());
-  chain.delete = vi.fn(() => makeChain());
-  chain.transaction = vi.fn();
+  attachDbMethods(chain, makeChain);
 
   return chain as unknown as DbClient;
 }
