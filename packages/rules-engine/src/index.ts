@@ -1,9 +1,9 @@
 export { createRulesEngine, evaluateStackability } from "./engine.js";
 export type {
-  StackingRule,
   ProgramFact,
-  StackabilityResult,
-  RuleConditions,
   RuleCondition,
+  RuleConditions,
   RuleEvent,
+  StackabilityResult,
+  StackingRule,
 } from "./types.js";
