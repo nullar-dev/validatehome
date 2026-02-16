@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
 language: en-US
-tone_instructions: "Be direct and concise. Focus on bugs, security, and performance."
+tone_instructions: "Be direct and concise. Focus on bugs, security, and performance. No fluff."
 early_access: true
+enable_free_tier: true
 
 reviews:
   profile: assertive
@@ -10,6 +11,7 @@ reviews:
   high_level_summary: true
   high_level_summary_in_walkthrough: true
   commit_status: true
+  fail_commit_status: true
   collapse_walkthrough: true
   sequence_diagrams: true
   changed_files_summary: true
@@ -18,9 +20,30 @@ reviews:
   related_prs: true
   suggested_labels: true
   suggested_reviewers: false
+  auto_assign_reviewers: false
+  auto_apply_labels: false
   poem: false
   in_progress_fortune: false
   estimate_code_review_effort: true
+  abort_on_close: true
+
+  auto_title_instructions: >
+    Use conventional commits format: type(scope): description.
+    Types: feat, fix, refactor, docs, test, chore, perf, ci.
+    Scope should be the package or app name (e.g., calculator, web, api).
+    Keep under 72 characters.
+
+  labeling_instructions:
+    - label: "bug"
+      instructions: "Apply when the PR fixes a bug or defect."
+    - label: "feature"
+      instructions: "Apply when the PR adds new functionality."
+    - label: "security"
+      instructions: "Apply when the PR addresses a security issue or adds security hardening."
+    - label: "dependencies"
+      instructions: "Apply when the PR updates dependencies."
+    - label: "ci"
+      instructions: "Apply when the PR modifies CI/CD workflows or build config."
 
   path_filters:
     - "!pnpm-lock.yaml"
@@ -29,52 +52,93 @@ reviews:
     - "!**/.turbo/**"
     - "!**/coverage/**"
     - "!**/.sst/**"
+    - "!**/*.min.js"
+    - "!**/*.map"
 
   path_instructions:
     - path: "packages/calculator/**"
       instructions: >
         This is the net-cost calculator for home upgrade incentives.
         Verify stacking logic correctness, edge cases (zero cost, max caps, multi-currency),
-        and that no calculation can produce negative net costs.
+        and that no calculation can produce negative net costs. All functions must be pure
+        and immutable. Check for proper Intl.NumberFormat usage for multi-currency.
 
     - path: "packages/rules-engine/**"
       instructions: >
         This is the incentive stacking rules engine using json-rules-engine.
         Verify rule correctness, conflict detection, and that rules are
         JSON-serializable. Check for circular stacking dependencies.
+        Rules must be deterministic and side-effect free.
 
     - path: "packages/db/**"
       instructions: >
         Drizzle ORM schema and migrations for PostgreSQL (Neon).
-        Verify migration safety, index coverage, and that all queries
-        use parameterized inputs (no raw SQL with user data).
+        Verify migration safety (no data loss), proper index coverage, foreign key
+        constraints, and that all queries use parameterized inputs. Never allow
+        raw SQL with user-provided data. Check for proper JSONB column types.
+
+    - path: "packages/shared/**"
+      instructions: >
+        Shared types, constants, and utilities used across all apps.
+        Must remain framework-agnostic (no React/Node imports). Verify
+        type exports use 'export type' for type-only exports. Check for
+        ReDoS-safe regex patterns and proper input validation.
+
+    - path: "packages/ui/**"
+      instructions: >
+        Shared React UI components (shadcn/ui based). Verify accessibility
+        (aria attributes, keyboard navigation), proper 'use client' directives,
+        and that components accept className prop for composition. No business
+        logic in UI components.
+
+    - path: "packages/config/**"
+      instructions: >
+        Shared configuration for TypeScript, Vitest, and build tooling.
+        Changes here affect all packages. Verify backwards compatibility
+        and that config changes don't break any downstream packages.
 
     - path: "apps/api/**"
       instructions: >
         Hono REST API server. Check for proper input validation (Zod),
-        authentication/authorization, rate limiting, CORS configuration,
-        and that error responses don't leak sensitive data.
+        authentication/authorization on all routes, rate limiting, strict CORS
+        configuration (no wildcard origins in production), and that error
+        responses don't leak sensitive data (stack traces, DB errors).
 
     - path: "apps/web/**"
       instructions: >
         Next.js 16 App Router frontend with SSG/ISR for programmatic SEO.
-        Verify metadata/structured data correctness, proper use of
-        generateStaticParams, and no client-side data leaks.
+        Verify metadata/structured data correctness (schema.org), proper use of
+        generateStaticParams, no client-side data leaks, proper use of
+        'use client' directives, and Lighthouse-friendly patterns.
+
+    - path: "apps/admin/**"
+      instructions: >
+        Refine + Ant Design admin dashboard. Verify proper auth guards on all
+        routes, no sensitive data exposure in client bundles, and that admin
+        actions have confirmation dialogs for destructive operations.
 
     - path: "apps/workers/**"
       instructions: >
-        Inngest crawl/parse/diff workers. Verify retry logic, error handling,
-        rate limiting compliance, and that crawled data is properly sanitized
-        before storage.
+        Inngest crawl/parse/diff workers. Verify retry logic, idempotency,
+        error handling, rate limiting compliance (robots.txt), and that crawled
+        data is properly sanitized before storage. Check for proper DLQ handling.
 
     - path: ".github/workflows/**"
       instructions: >
-        GitHub Actions CI/CD. Verify all actions are pinned to commit SHAs,
-        permissions are minimal, and secrets are not exposed in logs.
+        GitHub Actions CI/CD. Verify all actions are pinned to full commit SHAs
+        (not tags), permissions follow least-privilege, secrets are not exposed
+        in logs, and timeout-minutes is set on all jobs.
+
+    - path: "**/*.test.ts"
+      instructions: >
+        Test files. Verify tests are isolated, use proper assertions (not just
+        truthy checks), cover edge cases, and follow AAA pattern
+        (Arrange-Act-Assert). Check for proper cleanup in afterEach/afterAll.
 
   auto_review:
     enabled: true
     auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
     drafts: false
     base_branches:
       - main
@@ -87,22 +151,125 @@ reviews:
 
   pre_merge_checks:
     title:
-      mode: warning
-      requirements: "Follow conventional commits format: type(scope): description"
+      mode: error
+      requirements: "Must follow conventional commits: type(scope): description"
     description:
       mode: warning
+    issue_assessment:
+      mode: warning
+    custom_checks:
+      - name: "Security review"
+        mode: warning
+        instructions: >
+          Verify no hardcoded secrets, API keys, or credentials. Check that all
+          user inputs are validated. Verify CORS, CSP, and auth are configured.
+      - name: "Immutability"
+        mode: warning
+        instructions: >
+          Verify data transformations create new objects instead of mutating
+          existing ones. No Array.push on shared state, no Object.assign
+          mutations. Spread operators or structuredClone preferred.
 
   tools:
+    # TypeScript / JS
     biome:
       enabled: true
+    ast-grep:
+      essential_rules: true
+    # Security
     gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
+    osvScanner:
+      enabled: true
+    # Config / CI
+    actionlint:
       enabled: true
     shellcheck:
       enabled: true
     yamllint:
       enabled: true
+    dotenvLint:
+      enabled: true
+    # Documentation
     markdownlint:
       enabled: true
+    languagetool:
+      enabled: true
+      enabled_categories:
+        - TYPOS
+        - GRAMMAR
+      level: "default"
+    # GitHub integration
+    github-checks:
+      enabled: true
+      timeout_ms: 90000
+    # Disable tools not in our stack
+    eslint:
+      enabled: false
+    oxc:
+      enabled: false
+    ruff:
+      enabled: false
+    flake8:
+      enabled: false
+    pylint:
+      enabled: false
+    golangci-lint:
+      enabled: false
+    clippy:
+      enabled: false
+    phpstan:
+      enabled: false
+    phpmd:
+      enabled: false
+    phpcs:
+      enabled: false
+    rubocop:
+      enabled: false
+    swiftlint:
+      enabled: false
+    detekt:
+      enabled: false
+    pmd:
+      enabled: false
+    clang:
+      enabled: false
+    cppcheck:
+      enabled: false
+    hadolint:
+      enabled: false
+    tflint:
+      enabled: false
+    checkov:
+      enabled: false
+    buf:
+      enabled: false
+    regal:
+      enabled: false
+    fortitudeLint:
+      enabled: false
+    sqlfluff:
+      enabled: false
+    prismaLint:
+      enabled: false
+    shopifyThemeCheck:
+      enabled: false
+    luacheck:
+      enabled: false
+    brakeman:
+      enabled: false
+    htmlhint:
+      enabled: false
+    stylelint:
+      enabled: false
+    checkmake:
+      enabled: false
+    blinter:
+      enabled: false
+    circleci:
+      enabled: false
 
 chat:
   auto_reply: true
@@ -111,9 +278,29 @@ knowledge_base:
   opt_out: false
   web_search:
     enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "biome.json"
+      - "PLAN.md"
   learnings:
     scope: local
   issues:
     scope: local
   pull_requests:
     scope: local
+
+code_generation:
+  unit_tests:
+    path_instructions:
+      - path: "packages/**"
+        instructions: >
+          Use Vitest. Follow AAA pattern. Use describe/it blocks. Import from
+          vitest (describe, it, expect). Use vi.fn() for mocks. Target 80%+
+          coverage. Test edge cases including zero values, max values, invalid
+          inputs, and multi-currency scenarios.
+      - path: "apps/api/**"
+        instructions: >
+          Use Vitest with Hono test client (app.request). Test all HTTP methods,
+          status codes, error responses, and input validation. Verify auth
+          middleware is applied. Use test fixtures for database state.
