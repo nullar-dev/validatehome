@@ -11,4 +11,5 @@ export function createDb(connectionString: string) {
 export type Database = ReturnType<typeof createDb>;
 
 export * from "./relations.js";
+export * from "./repositories/index.js";
 export * from "./schema/index.js";

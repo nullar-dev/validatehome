@@ -21,10 +21,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "pnpm build && drizzle-kit generate --schema=./dist/schema/index.js --dialect=postgresql --out=./drizzle",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
+    "db:push": "pnpm build && drizzle-kit push --schema=./dist/schema/index.js --dialect=postgresql",
     "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/seed.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -33,9 +34,11 @@
     "postgres": "^3.4.5"
   },
   "devDependencies": {
+    "@types/node": "^25.2.3",
     "@validatehome/config": "workspace:*",
     "@vitest/coverage-v8": "^4.0.18",
     "drizzle-kit": "^0.31.9",
+    "tsx": "^4.19.2",
     "vitest": "^4.0.18"
   }
 }
