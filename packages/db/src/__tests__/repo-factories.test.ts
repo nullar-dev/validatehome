@@ -61,7 +61,7 @@ function createMockDb(rows: unknown[] = []) {
 
   return chain as unknown as DbClient;
 }
-
+// sonarcloud-disable-next-line S4144
 function createMockDbWithSelectBatches(selectBatches: unknown[][]) {
   const makeChain = (rows: unknown[]): Promise<unknown[]> & Record<string, unknown> => {
     const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
