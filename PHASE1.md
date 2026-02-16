@@ -412,7 +412,7 @@ Conclusion:
 
 ### Cross-check vs Claude sub-phase plan
 
-Reference compared: `/root/.claude/plans/glistening-kindling-ripple.md`
+Reference compared: `./plans/glistening-kindling-ripple.md` (relative path to Claude plan file in project root)
 
 Aligned:
 

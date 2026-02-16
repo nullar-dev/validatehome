@@ -12,6 +12,9 @@ export type NewBenefit = typeof benefits.$inferInsert;
 export function benefitRepo(db: DbClient) {
   return {
     async findByProgram(programId: string): Promise<Benefit[]> {
+      if (!programId || !programId.trim()) {
+        return [];
+      }
       return db.select().from(benefits).where(eq(benefits.programId, programId));
     },
 
@@ -20,6 +23,9 @@ export function benefitRepo(db: DbClient) {
       country: CountryCode,
       categoryId?: string,
     ): Promise<(Benefit & { programName: string; programSlug: string })[]> {
+      if (!postalCode || !postalCode.trim()) {
+        return [];
+      }
       const mappings = await db
         .select()
         .from(geoMappings)
