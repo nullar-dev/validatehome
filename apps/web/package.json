@@ -21,13 +21,13 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^25.2.3",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@validatehome/config": "workspace:*",
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",
-    "tailwindcss": "3",
+    "tailwindcss": "4",
     "vitest": "^3.0.4"
   }
 }

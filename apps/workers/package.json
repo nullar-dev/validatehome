@@ -19,7 +19,7 @@
     "inngest": "^3.27.6"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^25.2.3",
     "@validatehome/config": "workspace:*",
     "tsx": "^4.19.2",
     "vitest": "^3.0.4"
