@@ -1,0 +1,27 @@
+{
+  "name": "@validatehome/workers",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@validatehome/db": "workspace:*",
+    "@validatehome/shared": "workspace:*",
+    "hono": "^4.6.16",
+    "inngest": "^3.27.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@validatehome/config": "workspace:*",
+    "tsx": "^4.19.2",
+    "vitest": "^3.0.4"
+  }
+}

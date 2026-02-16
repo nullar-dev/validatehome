@@ -1,0 +1,10 @@
+{
+  "name": "@validatehome/config",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "files": ["tsconfig.base.json", "tsconfig.node.json", "tsconfig.next.json", "vitest.shared.ts"],
+  "dependencies": {
+    "vitest": "^3.0.4"
+  }
+}
