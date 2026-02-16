@@ -40,13 +40,14 @@ export function normalizePostalCode(code: string, country: Country): string {
 }
 
 export function slugify(text: string): string {
-  return text
+  let result = text
     .toLowerCase()
     .replaceAll(/[^\w\s-]/g, "")
     .replaceAll(/[\s_]+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replace(/^-+/, "")
-    .replace(/-+$/, "");
+    .replaceAll(/-+/g, "-");
+  if (result.startsWith("-")) result = result.slice(1);
+  if (result.endsWith("-")) result = result.slice(0, -1);
+  return result;
 }
 
 export function clamp(value: number, min: number, max: number): number {
