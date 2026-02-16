@@ -23,14 +23,14 @@ export function isValidPostalCode(code: string, country: Country): boolean {
 export function normalizePostalCode(code: string, country: Country): string {
   const trimmed = code.trim().toUpperCase();
   if (country === "UK") {
-    const clean = trimmed.replace(/\s+/g, "");
+    const clean = trimmed.replaceAll(/\s+/g, "");
     if (clean.length > 3) {
       return `${clean.slice(0, -3)} ${clean.slice(-3)}`;
     }
     return clean;
   }
   if (country === "CA") {
-    const clean = trimmed.replace(/\s+/g, "");
+    const clean = trimmed.replaceAll(/\s+/g, "");
     if (clean.length === 6) {
       return `${clean.slice(0, 3)} ${clean.slice(3)}`;
     }
@@ -42,9 +42,9 @@ export function normalizePostalCode(code: string, country: Country): string {
 export function slugify(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_]+/g, "-")
-    .replace(/-+/g, "-")
+    .replaceAll(/[^\w\s-]/g, "")
+    .replaceAll(/[\s_]+/g, "-")
+    .replaceAll(/-+/g, "-")
     .replace(/^-+/, "")
     .replace(/-+$/, "");
 }

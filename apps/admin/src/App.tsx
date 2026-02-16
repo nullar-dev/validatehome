@@ -8,6 +8,10 @@ import "@refinedev/antd/dist/reset.css";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000/v1";
 
+function AppTitle() {
+  return <span>ValidateHome</span>;
+}
+
 function DashboardPage() {
   return (
     <div style={{ padding: 24 }}>
@@ -50,7 +54,7 @@ export function App() {
             ]}
           >
             <Routes>
-              <Route element={<ThemedLayout Title={() => <span>ValidateHome</span>} />}>
+              <Route element={<ThemedLayout Title={AppTitle} />}>
                 <Route index element={<DashboardPage />} />
               </Route>
             </Routes>
