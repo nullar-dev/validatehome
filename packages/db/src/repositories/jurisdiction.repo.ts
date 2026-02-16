@@ -17,6 +17,9 @@ export function jurisdictionRepo(db: DbClient) {
       if (!options) {
         return db.select().from(jurisdictions).orderBy(jurisdictions.name);
       }
+      if (options.page < 1 || options.limit < 1) {
+        throw new Error("Pagination options must be positive integers");
+      }
       const offset = (options.page - 1) * options.limit;
       const [data, countResult] = await Promise.all([
         db

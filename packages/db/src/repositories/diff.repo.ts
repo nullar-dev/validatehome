@@ -28,12 +28,19 @@ export function diffRepo(db: DbClient) {
         .offset(offset);
     },
 
-    async findBySource(sourceId: string): Promise<Diff[]> {
+    async findBySource(
+      sourceId: string,
+      options?: { limit?: number; offset?: number },
+    ): Promise<Diff[]> {
+      const limit = options?.limit ?? 100;
+      const offset = options?.offset ?? 0;
       return db
         .select()
         .from(diffs)
         .where(eq(diffs.sourceId, sourceId))
-        .orderBy(desc(diffs.createdAt));
+        .orderBy(desc(diffs.createdAt))
+        .limit(limit)
+        .offset(offset);
     },
 
     async markReviewed(id: string, reviewedBy: string): Promise<Diff> {

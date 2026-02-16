@@ -17,7 +17,6 @@ export const geoMappings = pgTable(
   },
   (table) => [
     uniqueIndex("geo_mappings_postal_code_country_uq").on(table.postalCode, table.country),
-    index("geo_mappings_postal_code_country_idx").on(table.postalCode, table.country),
     index("geo_mappings_state_province_idx").on(table.stateProvince),
   ],
 );
