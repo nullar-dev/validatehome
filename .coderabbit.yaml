@@ -1,0 +1,119 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+tone_instructions: "Be direct and concise. Focus on bugs, security, and performance."
+early_access: true
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  commit_status: true
+  collapse_walkthrough: true
+  sequence_diagrams: true
+  changed_files_summary: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  suggested_reviewers: false
+  poem: false
+  in_progress_fortune: false
+  estimate_code_review_effort: true
+
+  path_filters:
+    - "!pnpm-lock.yaml"
+    - "!**/dist/**"
+    - "!**/.next/**"
+    - "!**/.turbo/**"
+    - "!**/coverage/**"
+    - "!**/.sst/**"
+
+  path_instructions:
+    - path: "packages/calculator/**"
+      instructions: >
+        This is the net-cost calculator for home upgrade incentives.
+        Verify stacking logic correctness, edge cases (zero cost, max caps, multi-currency),
+        and that no calculation can produce negative net costs.
+
+    - path: "packages/rules-engine/**"
+      instructions: >
+        This is the incentive stacking rules engine using json-rules-engine.
+        Verify rule correctness, conflict detection, and that rules are
+        JSON-serializable. Check for circular stacking dependencies.
+
+    - path: "packages/db/**"
+      instructions: >
+        Drizzle ORM schema and migrations for PostgreSQL (Neon).
+        Verify migration safety, index coverage, and that all queries
+        use parameterized inputs (no raw SQL with user data).
+
+    - path: "apps/api/**"
+      instructions: >
+        Hono REST API server. Check for proper input validation (Zod),
+        authentication/authorization, rate limiting, CORS configuration,
+        and that error responses don't leak sensitive data.
+
+    - path: "apps/web/**"
+      instructions: >
+        Next.js 16 App Router frontend with SSG/ISR for programmatic SEO.
+        Verify metadata/structured data correctness, proper use of
+        generateStaticParams, and no client-side data leaks.
+
+    - path: "apps/workers/**"
+      instructions: >
+        Inngest crawl/parse/diff workers. Verify retry logic, error handling,
+        rate limiting compliance, and that crawled data is properly sanitized
+        before storage.
+
+    - path: ".github/workflows/**"
+      instructions: >
+        GitHub Actions CI/CD. Verify all actions are pinned to commit SHAs,
+        permissions are minimal, and secrets are not exposed in logs.
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    base_branches:
+      - main
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: true
+
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: "Follow conventional commits format: type(scope): description"
+    description:
+      mode: warning
+
+  tools:
+    biome:
+      enabled: true
+    gitleaks:
+      enabled: true
+    shellcheck:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  learnings:
+    scope: local
+  issues:
+    scope: local
+  pull_requests:
+    scope: local
