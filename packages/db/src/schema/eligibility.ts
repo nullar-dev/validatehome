@@ -1,4 +1,13 @@
-import { index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { programs } from "./program.js";
 
 export const eligibilityRuleTypeEnum = pgEnum("eligibility_rule_type", [
@@ -53,5 +62,6 @@ export const stackabilityConstraints = pgTable(
   (table) => [
     index("stackability_constraints_program_a_idx").on(table.programAId),
     index("stackability_constraints_program_b_idx").on(table.programBId),
+    uniqueIndex("stackability_constraints_program_pair_uq").on(table.programAId, table.programBId),
   ],
 );

@@ -56,7 +56,7 @@ export const programVersions = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     programId: uuid("program_id")
-      .references(() => programs.id)
+      .references(() => programs.id, { onDelete: "cascade" })
       .notNull(),
     data: jsonb("data").notNull(),
     changedFields: jsonb("changed_fields"),

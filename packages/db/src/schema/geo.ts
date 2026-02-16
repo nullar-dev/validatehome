@@ -1,4 +1,4 @@
-import { index, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { countryEnum } from "./jurisdiction.js";
 
 export const geoMappings = pgTable(
@@ -16,6 +16,7 @@ export const geoMappings = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    uniqueIndex("geo_mappings_postal_code_country_uq").on(table.postalCode, table.country),
     index("geo_mappings_postal_code_country_idx").on(table.postalCode, table.country),
     index("geo_mappings_state_province_idx").on(table.stateProvince),
   ],

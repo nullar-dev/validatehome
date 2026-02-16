@@ -1,4 +1,4 @@
-import { eq, or } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { stackabilityConstraints } from "../schema/eligibility.js";
 import { programs } from "../schema/program.js";
 import type { DbClient } from "./types.js";
@@ -29,8 +29,15 @@ export function stackabilityRepo(db: DbClient) {
       if (programIds.length === 0) return [];
 
       const ids = programIds.map((p) => p.id);
-      const allConstraints = await db.select().from(stackabilityConstraints);
-      return allConstraints.filter((c) => ids.includes(c.programAId) || ids.includes(c.programBId));
+      return db
+        .select()
+        .from(stackabilityConstraints)
+        .where(
+          or(
+            inArray(stackabilityConstraints.programAId, ids),
+            inArray(stackabilityConstraints.programBId, ids),
+          ),
+        );
     },
 
     async create(data: NewStackabilityConstraint): Promise<StackabilityConstraint> {

@@ -157,12 +157,9 @@ describe("jurisdictionRepo", () => {
   });
 
   it("findByPostalCode returns jurisdictions when mapping exists", async () => {
-    const db = createMockDbWithSelectBatches([
-      [{ postalCode: "90210", country: "US", jurisdictionIds: ["j-1", "j-2"] }],
-      [
-        { id: "j-1", name: "US Federal" },
-        { id: "j-2", name: "California" },
-      ],
+    const db = createMockDb([
+      { id: "j-1", name: "US Federal" },
+      { id: "j-2", name: "California" },
     ]);
     const repo = jurisdictionRepo(db);
     const result = await repo.findByPostalCode("90210", "US");
@@ -391,17 +388,6 @@ describe("programRepo", () => {
     ).rejects.toThrow("Failed to create program");
   });
 
-  it("createMany returns inserted rows", async () => {
-    const inserted = [{ id: "b-1" }, { id: "b-2" }];
-    const db = createMockDb(inserted);
-    const repo = benefitRepo(db);
-    const result = await repo.createMany([
-      { programId: "p-1", type: "rebate", currency: "USD" },
-      { programId: "p-1", type: "tax_credit", currency: "USD" },
-    ]);
-    expect(result).toEqual(inserted);
-  });
-
   it("update returns updated row", async () => {
     const updated = { id: "1", name: "Updated" };
     const db = createMockDb([updated]);
@@ -507,6 +493,17 @@ describe("benefitRepo", () => {
     const repo = benefitRepo(db);
     const result = await repo.createMany([]);
     expect(result).toEqual([]);
+  });
+
+  it("createMany returns inserted rows", async () => {
+    const inserted = [{ id: "b-1" }, { id: "b-2" }];
+    const db = createMockDb(inserted);
+    const repo = benefitRepo(db);
+    const result = await repo.createMany([
+      { programId: "p-1", type: "rebate", currency: "USD" },
+      { programId: "p-1", type: "tax_credit", currency: "USD" },
+    ]);
+    expect(result).toEqual(inserted);
   });
 
   it("create returns inserted row", async () => {
@@ -864,7 +861,7 @@ describe("geoMappingRepo", () => {
   });
 
   it("bulkCreate returns inserted rows", async () => {
-    const rows = [{ postalCode: "90210" }, { postalCode: "94102" }];
+    const rows = [{ id: "j-1" }, { id: "j-2" }];
     const db = createMockDb(rows);
     const repo = geoMappingRepo(db);
     const result = await repo.bulkCreate([
@@ -872,6 +869,27 @@ describe("geoMappingRepo", () => {
       { postalCode: "94102", country: "US", jurisdictionIds: ["j-1", "j-2"] },
     ]);
     expect(result).toEqual(rows);
+  });
+
+  it("bulkCreate throws when jurisdictionIds contain unknown ids", async () => {
+    const db = createMockDbWithSelectBatches([[{ id: "j-1" }]]);
+    const repo = geoMappingRepo(db);
+
+    await expect(
+      repo.bulkCreate([{ postalCode: "90210", country: "US", jurisdictionIds: ["j-1", "j-2"] }]),
+    ).rejects.toThrow("Invalid jurisdictionIds: j-2");
+  });
+
+  it("bulkCreate throws on partial insert", async () => {
+    const db = createMockDb([{ id: "j-1" }]);
+    const repo = geoMappingRepo(db);
+
+    await expect(
+      repo.bulkCreate([
+        { postalCode: "90210", country: "US", jurisdictionIds: ["j-1"] },
+        { postalCode: "94102", country: "US", jurisdictionIds: ["j-1"] },
+      ]),
+    ).rejects.toThrow("Partial geo mapping insert: expected 2, inserted 1");
   });
 
   it("findByStateProvince returns rows", async () => {
@@ -912,7 +930,6 @@ describe("stackabilityRepo", () => {
       [{ id: "p-1" }, { id: "p-2" }],
       [
         { id: "sc-1", programAId: "p-1", programBId: "x-1" },
-        { id: "sc-2", programAId: "x-2", programBId: "x-3" },
         { id: "sc-3", programAId: "x-4", programBId: "p-2" },
       ],
     ]);
@@ -1014,8 +1031,14 @@ describe("apiKeyRepo", () => {
   });
 
   it("touchLastUsed does not throw", async () => {
-    const db = createMockDb([]);
+    const db = createMockDb([{ id: "ak-1" }]);
     const repo = apiKeyRepo(db);
     await expect(repo.touchLastUsed("ak-1")).resolves.toBeUndefined();
+  });
+
+  it("touchLastUsed throws when key is missing", async () => {
+    const db = createMockDb([]);
+    const repo = apiKeyRepo(db);
+    await expect(repo.touchLastUsed("missing")).rejects.toThrow("API key not found: missing");
   });
 });

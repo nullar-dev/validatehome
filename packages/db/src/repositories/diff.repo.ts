@@ -16,12 +16,16 @@ export function diffRepo(db: DbClient) {
       return created;
     },
 
-    async findUnreviewed(): Promise<Diff[]> {
+    async findUnreviewed(options?: { limit?: number; offset?: number }): Promise<Diff[]> {
+      const limit = options?.limit ?? 100;
+      const offset = options?.offset ?? 0;
       return db
         .select()
         .from(diffs)
         .where(eq(diffs.reviewed, false))
-        .orderBy(desc(diffs.significanceScore));
+        .orderBy(desc(diffs.significanceScore))
+        .limit(limit)
+        .offset(offset);
     },
 
     async findBySource(sourceId: string): Promise<Diff[]> {

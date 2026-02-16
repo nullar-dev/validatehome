@@ -31,4 +31,10 @@ describe("paginate", () => {
     expect(result.totalPages).toBe(1);
     expect(result.data).toHaveLength(1);
   });
+
+  it("normalizes non-positive limit to avoid division by zero", () => {
+    const result = paginate(["a"], 5, { page: 1, limit: 0 });
+    expect(result.limit).toBe(1);
+    expect(result.totalPages).toBe(5);
+  });
 });

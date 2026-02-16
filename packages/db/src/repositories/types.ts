@@ -22,11 +22,12 @@ export function paginate<T>(
   total: number,
   options: PaginationOptions,
 ): PaginatedResult<T> {
+  const normalizedLimit = options.limit > 0 ? options.limit : 1;
   return {
     data,
     total,
     page: options.page,
-    limit: options.limit,
-    totalPages: Math.ceil(total / options.limit),
+    limit: normalizedLimit,
+    totalPages: Math.ceil(total / normalizedLimit),
   };
 }

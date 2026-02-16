@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { geoMappings } from "../schema/geo.js";
 import { type countryEnum, jurisdictions } from "../schema/jurisdiction.js";
 import type { DbClient, PaginatedResult, PaginationOptions } from "./types.js";
@@ -44,19 +44,18 @@ export function jurisdictionRepo(db: DbClient) {
     },
 
     async findByPostalCode(postalCode: string, country: CountryCode): Promise<Jurisdiction[]> {
-      const mappings = await db
+      return db
         .select()
-        .from(geoMappings)
-        .where(and(eq(geoMappings.postalCode, postalCode), eq(geoMappings.country, country)))
-        .limit(1);
-
-      const mapping = mappings[0];
-      if (!mapping || !mapping.jurisdictionIds.length) {
-        return [];
-      }
-
-      const ids = mapping.jurisdictionIds;
-      return db.select().from(jurisdictions).where(sql`${jurisdictions.id} = ANY(${ids})`);
+        .from(jurisdictions)
+        .where(sql`
+        ${jurisdictions.id} = ANY(
+          SELECT unnest(${geoMappings.jurisdictionIds})
+          FROM ${geoMappings}
+          WHERE ${geoMappings.postalCode} = ${postalCode}
+            AND ${geoMappings.country} = ${country}
+          LIMIT 1
+        )
+      `);
     },
 
     async create(data: NewJurisdiction): Promise<Jurisdiction> {

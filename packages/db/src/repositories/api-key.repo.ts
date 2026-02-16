@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { apiKeys } from "../schema/api-key.js";
 import type { DbClient } from "./types.js";
 
@@ -8,7 +8,11 @@ export type NewApiKey = typeof apiKeys.$inferInsert;
 export function apiKeyRepo(db: DbClient) {
   return {
     async findByHash(keyHash: string): Promise<ApiKey | undefined> {
-      const rows = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, keyHash)).limit(1);
+      const rows = await db
+        .select()
+        .from(apiKeys)
+        .where(and(eq(apiKeys.keyHash, keyHash), eq(apiKeys.isActive, true)))
+        .limit(1);
       return rows[0];
     },
 
@@ -35,7 +39,14 @@ export function apiKeyRepo(db: DbClient) {
     },
 
     async touchLastUsed(id: string): Promise<void> {
-      await db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, id));
+      const rows = await db
+        .update(apiKeys)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(apiKeys.id, id))
+        .returning({ id: apiKeys.id });
+      if (!rows[0]) {
+        throw new Error(`API key not found: ${id}`);
+      }
     },
   };
 }
