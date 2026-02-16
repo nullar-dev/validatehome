@@ -65,9 +65,9 @@ This is a "Sure Bet" because of the Perfect Storm:
 
 Web research is REQUIRED (2026 best practices) for:
 
-- Best practices relevant to this project scope (data pipeline, crawling/parsing, diffing, SEO/programmatic pages, calculators, alerting, API licensing).
-- Best tech stack for this product in 2026 (frontend, backend, DB, search, queue, scraping, observability, infra).
-- Best CI possible (2026) including testing, security, supply chain, code quality, and deployment automation.
+- Research best practices for this project scope (data pipeline, crawling/parsing, diffing, SEO/programmatic pages, calculators, alerting, API licensing).
+- Identify the optimal 2026 tech stack (frontend, backend, DB, search, queue, scraping, observability, infra).
+- Define gold-standard 2026 CI (testing, security, supply chain, code quality, deployment automation).
 
 ### Preserve All Product Features
 
