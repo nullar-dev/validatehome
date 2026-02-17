@@ -15,7 +15,7 @@ import type {
 import { validateProgram } from "../validators/index.js";
 
 export class Transformer {
-  private options: NormalizationOptions;
+  private readonly options: NormalizationOptions;
 
   constructor(options: NormalizationOptions = {}) {
     this.options = {
@@ -191,7 +191,7 @@ export class Transformer {
     const parseAmount = (value: string | null): number | null => {
       if (!value) return null;
       const cleaned = value.replaceAll(",", "").trim();
-      const parsed = parseFloat(cleaned);
+      const parsed = Number.parseFloat(cleaned);
       return Number.isFinite(parsed) ? parsed : null;
     };
 

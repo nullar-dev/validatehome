@@ -34,7 +34,7 @@ export interface HistoricalRate {
 }
 
 const STATIC_RATES: Record<Currency, number> = {
-  USD: 1.0,
+  USD: 1,
   GBP: 0.79,
   AUD: 1.53,
   CAD: 1.36,
@@ -43,23 +43,23 @@ const STATIC_RATES: Record<Currency, number> = {
 const HISTORICAL_RATES: HistoricalRate[] = [
   {
     date: new Date("2024-01-01"),
-    rates: { USD: 1.0, GBP: 0.79, AUD: 1.52, CAD: 1.35 },
+    rates: { USD: 1, GBP: 0.79, AUD: 1.52, CAD: 1.35 },
   },
   {
     date: new Date("2024-06-01"),
-    rates: { USD: 1.0, GBP: 0.78, AUD: 1.5, CAD: 1.35 },
+    rates: { USD: 1, GBP: 0.78, AUD: 1.5, CAD: 1.35 },
   },
   {
     date: new Date("2024-12-01"),
-    rates: { USD: 1.0, GBP: 0.77, AUD: 1.51, CAD: 1.34 },
+    rates: { USD: 1, GBP: 0.77, AUD: 1.51, CAD: 1.34 },
   },
   {
     date: new Date("2025-01-01"),
-    rates: { USD: 1.0, GBP: 0.78, AUD: 1.52, CAD: 1.35 },
+    rates: { USD: 1, GBP: 0.78, AUD: 1.52, CAD: 1.35 },
   },
   {
     date: new Date("2025-06-01"),
-    rates: { USD: 1.0, GBP: 0.8, AUD: 1.54, CAD: 1.37 },
+    rates: { USD: 1, GBP: 0.8, AUD: 1.54, CAD: 1.37 },
   },
 ];
 
@@ -103,7 +103,7 @@ export class CurrencyConverter {
         originalCurrency: fromCurrency,
         convertedAmount: amount,
         toCurrency,
-        rate: 1.0,
+        rate: 1,
         date,
         isHistorical: false,
         auditTrail: [],
@@ -111,9 +111,9 @@ export class CurrencyConverter {
     }
 
     const rate = this.getRate(fromCurrency, toCurrency, date);
-    const numericAmount = parseFloat(amount);
+    const numericAmount = Number.parseFloat(amount);
     if (!Number.isFinite(numericAmount)) {
-      throw new Error(`Invalid amount: ${amount}`);
+      throw new TypeError(`Invalid amount: ${amount}`);
     }
     const convertedAmount = (numericAmount * rate).toFixed(2);
 
@@ -144,7 +144,7 @@ export class CurrencyConverter {
 
   getRate(fromCurrency: Currency, toCurrency: Currency, date: Date = new Date()): number {
     if (fromCurrency === toCurrency) {
-      return 1.0;
+      return 1;
     }
 
     const customKey = `${fromCurrency}-${toCurrency}`;
@@ -194,7 +194,7 @@ export class CurrencyConverter {
 
   getStaticRate(fromCurrency: Currency, toCurrency: Currency): number {
     if (fromCurrency === toCurrency) {
-      return 1.0;
+      return 1;
     }
     const fromRate = STATIC_RATES[fromCurrency];
     const toRate = STATIC_RATES[toCurrency];

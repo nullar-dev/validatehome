@@ -117,12 +117,15 @@ export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramD
       if (inTextBlock && trimmed.startsWith("(") && trimmed.endsWith(")")) {
         const text = trimmed.slice(1, -1);
         textLines.push(
-          text.replace(/\\(\d{3})/g, (_, octal) => String.fromCodePoint(Number.parseInt(octal, 8))),
+          text.replaceAll(/\\(\d{3})/g, (_, octal) =>
+            String.fromCodePoint(Number.parseInt(octal, 8)),
+          ),
         );
       }
 
       if (trimmed.startsWith("Tj") || trimmed.startsWith("TJ")) {
-        const match = trimmed.match(/\[(.*?)\]/);
+        const pattern = /\[(.*?)\]/;
+        const match = pattern.exec(trimmed);
         if (match?.[1]) {
           const parts = match[1].split(/[()]+/).filter(Boolean);
           textLines.push(...parts);
@@ -130,7 +133,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramD
       }
     }
 
-    return textLines.join(" ").replace(/\s+/g, " ").trim();
+    return textLines.join(" ").replaceAll(/\s+/g, " ").trim();
   }
 
   private extractProgramName(text: string): ExtractedField<string | null> {
@@ -158,7 +161,8 @@ export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramD
   }
 
   private extractUrl(text: string): ExtractedField<string | null> {
-    const urlMatch = text.match(/https?:\/\/[^\s<>"]+/);
+    const urlPattern = /https?:\/\/[^\s<>"]+/;
+    const urlMatch = urlPattern.exec(text);
 
     return {
       value: urlMatch?.[0] ?? null,
@@ -192,7 +196,6 @@ export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramD
       lower.includes("accepting") ||
       lower.includes("available")
     ) {
-      status = "open";
       confidence = 0.7;
     }
 
@@ -264,9 +267,11 @@ export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramD
 
     const dates: string[] = [];
     for (const pattern of datePatterns) {
-      const matches = text.match(pattern);
-      if (matches) {
-        dates.push(...matches);
+      const regex = new RegExp(pattern.source, pattern.flags);
+      let match: RegExpExecArray | null = regex.exec(text);
+      while (match !== null) {
+        dates.push(match[0]);
+        match = regex.exec(text);
       }
     }
 
@@ -301,7 +306,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramD
     const localKeywords = ["county", "city", "municipal", "local", "utility"];
 
     const stateRegex = new RegExp(
-      `(${stateKeywords.join("|")})\\s+([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)?)`,
+      String.raw`(${stateKeywords.join("|")})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)`,
       "gi",
     );
 
@@ -319,7 +324,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramD
     }
 
     if (!name.value) {
-      const match = lower.match(stateRegex);
+      const match = stateRegex.exec(lower);
       if (match?.[0]) {
         const parts = match[0].split(/\s+/);
         if (parts.length >= 2) {
@@ -406,7 +411,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramD
         percentage,
         incomeCap: { value: null, confidence: 0 },
         perUnitAmount: { value: null, confidence: 0 },
-        currency: { value: currency, confidence: 1.0 },
+        currency: { value: currency, confidence: 1 },
         description: { value: line.trim(), confidence: line.trim() ? 0.6 : 0 },
       });
     }

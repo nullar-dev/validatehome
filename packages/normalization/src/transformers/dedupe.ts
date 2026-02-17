@@ -85,7 +85,7 @@ function calculateSimilarity(name1: string, name2: string, slug1?: string, slug2
   let score = intersection.size / union.size;
 
   if (slug1 && slug2 && slug1 === slug2) {
-    score = (score + 1.0) / 2;
+    score = (score + 1) / 2;
   }
 
   return score;
@@ -210,7 +210,7 @@ export class DeduplicationEngine {
     if (domain1 && domain2 && domain1 === domain2) {
       const path1 = this.extractPath(url1);
       const path2 = this.extractPath(url2);
-      if (path1 === path2) return 1.0;
+      if (path1 === path2) return 1;
       return calculateSimilarity(path1, path2);
     }
 

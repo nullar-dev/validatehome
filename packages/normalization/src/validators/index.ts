@@ -32,7 +32,7 @@ function validateNumericField(
   fieldName: string,
   issues: ValidationIssue[],
 ): void {
-  if (value && Number.isNaN(parseFloat(value))) {
+  if (value && Number.isNaN(Number.parseFloat(value))) {
     addIssue(issues, fieldName, "error", `${fieldName} must be a valid number`, "INVALID_BUDGET");
   }
 }

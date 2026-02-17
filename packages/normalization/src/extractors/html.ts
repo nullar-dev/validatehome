@@ -151,18 +151,18 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
 
   private extractBySelector(html: string, selector: string): string | null {
     const cleanSelector = selector.replaceAll("]", "").replaceAll("[", "");
-    const escapedSelector = cleanSelector.replace(/[*+?^${}()|[\]\\]/g, "\\$&");
+    const escapedSelector = cleanSelector.replaceAll(/[*+?^${}()|[\]\\]/g, String.raw`\&`);
     const regex = new RegExp(
       `<[^>]*class=["']?[^"']*${escapedSelector}[^"']*["']?[^>]*>([^<]*)`,
       "i",
     );
-    const match = html.match(regex);
+    const match = regex.exec(html);
     return match?.[1] ? this.stripHtml(match[1]).trim() : null;
   }
 
   private stripHtml(html: string): string {
     return html
-      .replace(/<[^>]*>/g, "")
+      .replaceAll(/<[^>]*>/g, "")
       .replaceAll("&nbsp;", " ")
       .replaceAll("&amp;", "&")
       .trim();
@@ -198,8 +198,10 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
     remaining: ExtractedField<string | null>;
   } {
     const text = this.extractBySelector(html, selector) ?? "";
-    const totalMatch = text.match(/\$?([\d,]+(?:\.\d{2})?)\s*(?:total|budget|fund)/i);
-    const remainingMatch = text.match(/\$?([\d,]+(?:\.\d{2})?)\s*(?:remaining|left|available)/i);
+    const totalPattern = /\$?([\d,]+(?:\.\d{2})?)\s*(?:total|budget|fund)/i;
+    const remainingPattern = /\$?([\d,]+(?:\.\d{2})?)\s*(?:remaining|left|available)/i;
+    const totalMatch = totalPattern.exec(text);
+    const remainingMatch = remainingPattern.exec(text);
 
     return {
       total: {
@@ -281,7 +283,8 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
   }
 
   private parseBenefitAmount(match: string): { value: string | null; confidence: number } {
-    const amountMatch = match.match(/\$?([\d,]+(?:\.\d{2})?)\s*%?/);
+    const amountPattern = /\$?([\d,]+(?:\.\d{2})?)\s*%?/;
+    const amountMatch = amountPattern.exec(match);
     return {
       value: amountMatch?.[1] ? amountMatch[1].replaceAll(",", "") : null,
       confidence: amountMatch ? 0.85 : 0,
@@ -289,7 +292,8 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
   }
 
   private parseBenefitPercentage(match: string): { value: number | null; confidence: number } {
-    const percentMatch = match.match(/(\d+)\s*%/);
+    const percentPattern = /(\d+)\s*%/;
+    const percentMatch = percentPattern.exec(match);
     return {
       value: percentMatch?.[1] ? Number.parseInt(percentMatch[1], 10) : null,
       confidence: percentMatch ? 0.85 : 0,
@@ -312,7 +316,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
         percentage,
         incomeCap: { value: null, confidence: 0 },
         perUnitAmount: { value: null, confidence: 0 },
-        currency: { value: currency, confidence: 1.0 },
+        currency: { value: currency, confidence: 1 },
         description: { value: match.trim(), confidence: match.trim() ? 0.7 : 0 },
       };
     });
