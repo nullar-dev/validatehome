@@ -306,7 +306,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramD
     const localKeywords = ["county", "city", "municipal", "local", "utility"];
 
     const stateRegex = new RegExp(
-      String.raw`(${stateKeywords.join("|")})\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)`,
+      `(${stateKeywords.join("|")})\\s+([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)?)`,
       "gi",
     );
 

@@ -151,7 +151,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
 
   private extractBySelector(html: string, selector: string): string | null {
     const cleanSelector = selector.replaceAll("]", "").replaceAll("[", "");
-    const escapedSelector = cleanSelector.replaceAll(/[*+?^${}()|[\]\\]/g, String.raw`\&`);
+    const escapedSelector = cleanSelector.replaceAll(/[*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(
       `<[^>]*class=["']?[^"']*${escapedSelector}[^"']*["']?[^>]*>([^<]*)`,
       "i",
