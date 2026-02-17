@@ -42,10 +42,10 @@ function extractHighImpactSignals(content: string): {
   readonly deadline?: string;
 } {
   const lower = normalizeContent(content);
-  const statusMatch = /(open|waitlist|reserved|funded|closed|coming soon|coming_soon)/i.exec(lower);
-  const budgetMatch = /(budget|funding|remaining)\D{0,15}(\d[\d,]*(?:\.\d{1,2})?)/i.exec(lower);
+  const statusMatch = /(open|waitlist|reserved|funded|closed|coming soon|coming_soon)/.exec(lower);
+  const budgetMatch = /(budget|funding|remaining)\D{0,15}(\d[\d,]*(?:\.\d{1,2})?)/.exec(lower);
   const deadlineMatch =
-    /(deadline|expires|close[sd])\D{0,15}(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/i.exec(
+    /(deadline|expires|close[sd])\D{0,15}(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/.exec(
       lower,
     );
 

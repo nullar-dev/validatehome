@@ -5,7 +5,12 @@ export {
   crawlDlqRepo,
   type NewCrawlDlqEntry,
 } from "./crawl-dlq.repo.js";
-export { type CrawlJob, crawlJobRepo, type NewCrawlJob } from "./crawl-job.repo.js";
+export {
+  type CrawlJob,
+  type CrawlJobRepository,
+  crawlJobRepo,
+  type NewCrawlJob,
+} from "./crawl-job.repo.js";
 export {
   type CrawlSnapshot,
   crawlSnapshotRepo,

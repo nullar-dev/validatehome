@@ -23,9 +23,11 @@ function extractQuality(job: typeof crawlJobs.$inferSelect): {
 async function main(): Promise<void> {
   const db = createWorkerDb();
   try {
-    const jobs = await db.select().from(crawlJobs);
+    const jobs = await db.select().from(crawlJobs).limit(10_000);
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const recentJobs = jobs.filter((job) => job.createdAt >= cutoff);
 
-    const succeededJobs = jobs.filter((job) => job.status === "succeeded");
+    const succeededJobs = recentJobs.filter((job) => job.status === "succeeded");
     const fetchStatuses = succeededJobs.map((job) => {
       const metadata = job.metadata && typeof job.metadata === "object" ? job.metadata : undefined;
       if (metadata && "fetchStatus" in metadata && typeof metadata.fetchStatus === "number") {
@@ -40,19 +42,21 @@ async function main(): Promise<void> {
     const status304 = fetchStatuses.filter((status) => status === 304).length;
     const totalFetches = fetchStatuses.filter((status) => status !== undefined).length;
 
-    const totalJobs = succeededJobs.length;
-    const completenessPass = succeededJobs.filter((job) => {
-      const quality = extractQuality(job);
-      return quality.completeness >= 0.95;
-    }).length;
-    const confidencePass = succeededJobs.filter((job) => {
-      const quality = extractQuality(job);
-      return quality.confidence >= 0.75;
-    }).length;
+    const jobsWithQuality = succeededJobs.map((job) => ({
+      job,
+      quality: extractQuality(job),
+    }));
+
+    const totalJobs = jobsWithQuality.length;
+    const completenessPass = jobsWithQuality.filter(
+      ({ quality }) => quality.completeness >= 0.95,
+    ).length;
+    const confidencePass = jobsWithQuality.filter(
+      ({ quality }) => quality.confidence >= 0.75,
+    ).length;
 
     const latestBySource = new Map<string, typeof crawlJobs.$inferSelect>();
-    for (const job of succeededJobs) {
-      const quality = extractQuality(job);
+    for (const { job, quality } of jobsWithQuality) {
       if (quality.completeness <= 0 && quality.confidence <= 0) {
         continue;
       }

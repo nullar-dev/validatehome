@@ -14,6 +14,22 @@ export function resetRobotsCache(): void {
   cache.clear();
 }
 
+function patternToRegex(pattern: string): RegExp {
+  const endsWithAnchor = pattern.endsWith("$");
+  const basePattern = endsWithAnchor ? pattern.slice(0, -1) : pattern;
+  const escaped = basePattern.replaceAll(/[.+?^${}()|[\]\\]/g, "\\$&").replaceAll("*", ".*");
+  return new RegExp(`^${escaped}${endsWithAnchor ? "$" : ""}`);
+}
+
+function isPathBlocked(pathname: string, disallowRules: readonly string[]): boolean {
+  return disallowRules.some((rule) => {
+    if (!rule) {
+      return false;
+    }
+    return patternToRegex(rule).test(pathname);
+  });
+}
+
 function parseRobots(content: string): RobotsRuleSet {
   const lines = content.split(/\r?\n/);
   const disallow: string[] = [];
@@ -54,7 +70,7 @@ export async function checkRobotsPolicy(targetUrl: string): Promise<{
   const cached = cache.get(origin);
 
   if (cached && now - cached.fetchedAt <= CACHE_TTL_MS) {
-    const blocked = cached.rules.disallow.some((path) => url.pathname.startsWith(path));
+    const blocked = isPathBlocked(url.pathname, cached.rules.disallow);
     return {
       allowed: !blocked,
       reason: blocked ? "Blocked by robots (cache)" : "Allowed by robots (cache)",
@@ -77,7 +93,7 @@ export async function checkRobotsPolicy(targetUrl: string): Promise<{
     const content = await response.text();
     const rules = parseRobots(content);
     cache.set(origin, { fetchedAt: now, rules });
-    const blocked = rules.disallow.some((path) => url.pathname.startsWith(path));
+    const blocked = isPathBlocked(url.pathname, rules.disallow);
     return {
       allowed: !blocked,
       reason: blocked ? "Blocked by robots" : "Allowed by robots",

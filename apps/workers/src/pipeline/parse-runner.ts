@@ -44,13 +44,13 @@ function buildReviewReasons(result: {
 }): string[] {
   const reasons: string[] = [];
   if (result.validationErrors > 0) {
-    reasons.push("VALIDATION_FAILED");
+    reasons.push("validation_failed");
   }
   if (result.confidenceOverall < 0.75) {
-    reasons.push("LOW_CONFIDENCE");
+    reasons.push("low_confidence");
   }
   if (result.completeness < 0.95) {
-    reasons.push("INCOMPLETE_REQUIRED_FIELDS");
+    reasons.push("incomplete_required_fields");
   }
   return reasons;
 }

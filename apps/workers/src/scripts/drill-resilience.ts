@@ -76,7 +76,7 @@ async function main(): Promise<void> {
       uniqueIngestionKeys.size === after.filter((s) => s.ingestionKey).length;
 
     process.stdout.write(
-      JSON.stringify(
+      `${JSON.stringify(
         {
           sourceId: source.id,
           replayResolved: replayOk,
@@ -87,7 +87,7 @@ async function main(): Promise<void> {
         },
         null,
         2,
-      ) + "\n",
+      )}\n`,
     );
 
     if (!noDuplicateIngestion) {

@@ -3,6 +3,7 @@ import { checkRobotsPolicy, resetRobotsCache } from "../pipeline/robots.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   resetRobotsCache();
 });
 

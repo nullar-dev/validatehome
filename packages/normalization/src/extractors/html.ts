@@ -151,30 +151,82 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
 
   private extractBySelector(html: string, selector: string): string | null {
     const trimmed = selector.trim();
-    let regex: RegExp;
-
-    if (trimmed.startsWith(".")) {
-      const className = this.escapeRegexSpecialChars(trimmed.slice(1));
-      regex = new RegExp(
-        `<[^>]*class=["'][^"']*\\b${className}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`,
-        "i",
-      );
-    } else if (trimmed.startsWith("#")) {
-      const idName = this.escapeRegexSpecialChars(trimmed.slice(1));
-      regex = new RegExp(`<[^>]*id=["']${idName}["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`, "i");
-    } else if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-      const attribute = this.escapeRegexSpecialChars(trimmed.slice(1, -1));
-      regex = new RegExp(
-        `<[^>]*\\b${attribute}(?:=["'][^"']*["'])?[^>]*>([\\s\\S]*?)<\\/[^>]+>`,
-        "i",
-      );
-    } else {
-      const tagName = this.escapeRegexSpecialChars(trimmed);
-      regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i");
+    if (trimmed.includes(" ")) {
+      return this.extractByDescendantSelector(html, trimmed);
     }
 
+    const regex = this.buildSelectorRegex(trimmed, false);
     const match = regex.exec(html);
     return match?.[1] ? this.stripHtml(match[1]).trim() : null;
+  }
+
+  private extractByDescendantSelector(html: string, selector: string): string | null {
+    const [parentSelector, childSelector] = selector.split(/\s+/, 2);
+    if (!parentSelector || !childSelector) {
+      return null;
+    }
+
+    const parentContents = this.extractAllElementContentsBySelector(html, parentSelector);
+    for (const parentContent of parentContents) {
+      const match = this.extractBySelector(parentContent, childSelector);
+      if (match) {
+        return match;
+      }
+    }
+
+    return null;
+  }
+
+  private buildSelectorRegex(selector: string, isGlobal: boolean): RegExp {
+    const flag = isGlobal ? "gi" : "i";
+
+    if (selector.startsWith(".")) {
+      const className = this.escapeRegexSpecialChars(selector.slice(1));
+      return new RegExp(
+        `<[^>]*class=["'][^"']*\\b${className}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`,
+        flag,
+      );
+    }
+
+    if (selector.startsWith("#")) {
+      const idName = this.escapeRegexSpecialChars(selector.slice(1));
+      return new RegExp(`<[^>]*id=["']${idName}["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`, flag);
+    }
+
+    if (selector.startsWith("[") && selector.endsWith("]")) {
+      const attribute = this.escapeRegexSpecialChars(selector.slice(1, -1));
+      return new RegExp(
+        `<[^>]*\\b${attribute}(?:=["'][^"']*["'])?[^>]*>([\\s\\S]*?)<\\/[^>]+>`,
+        flag,
+      );
+    }
+
+    if (/^[a-z][\w-]*\.[\w-]+$/i.test(selector)) {
+      const [tag, className] = selector.split(".");
+      const escapedTag = this.escapeRegexSpecialChars(tag ?? "");
+      const escapedClass = this.escapeRegexSpecialChars(className ?? "");
+      return new RegExp(
+        `<${escapedTag}[^>]*class=["'][^"']*\\b${escapedClass}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/${escapedTag}>`,
+        flag,
+      );
+    }
+
+    const tagName = this.escapeRegexSpecialChars(selector);
+    return new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, flag);
+  }
+
+  private extractAllElementContentsBySelector(html: string, selector: string): string[] {
+    const trimmed = selector.trim();
+    const regex = this.buildSelectorRegex(trimmed, true);
+
+    const matches: string[] = [];
+    for (const match of html.matchAll(regex)) {
+      const content = match[1];
+      if (typeof content === "string") {
+        matches.push(content);
+      }
+    }
+    return matches;
   }
 
   private escapeRegexSpecialChars(str: string): string {

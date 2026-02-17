@@ -1,3 +1,5 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import {
   crawlDlqRepo,
   crawlJobRepo,
@@ -69,27 +71,35 @@ async function persistDiffs(
   newSnapshotId: string,
   currentContent: string,
 ): Promise<void> {
-  if (!(previousSnapshot?.metadata && typeof previousSnapshot.metadata === "object")) {
+  if (!previousSnapshot?.rawHtmlPath) {
     return;
   }
 
-  const previousContent =
-    "rawContent" in previousSnapshot.metadata &&
-    typeof previousSnapshot.metadata.rawContent === "string"
-      ? previousSnapshot.metadata.rawContent
-      : "";
+  let previousContent = "";
+  try {
+    previousContent = await readFile(previousSnapshot.rawHtmlPath, "utf8");
+  } catch {
+    return;
+  }
 
   const diffRecords = buildDiffRecords(previousContent, currentContent);
-  for (const record of diffRecords) {
-    await deps.diffRepository.create({
-      sourceId,
-      oldSnapshotId: previousSnapshot.id,
-      newSnapshotId,
-      diffType: record.diffType,
-      significanceScore: record.significanceScore,
-      changesJson: record.changesJson,
-    });
-  }
+  await Promise.all(
+    diffRecords.map((record) =>
+      deps.diffRepository.create({
+        sourceId,
+        oldSnapshotId: previousSnapshot.id,
+        newSnapshotId,
+        diffType: record.diffType,
+        significanceScore: record.significanceScore,
+        changesJson: record.changesJson,
+      }),
+    ),
+  );
+}
+
+async function writeRawHtmlArtifact(filePath: string, content: string): Promise<void> {
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, content, "utf8");
 }
 
 async function handleExecutionError(
@@ -182,20 +192,23 @@ export async function executeCrawl(
 
     const contentHash = hashContent(fetched.content);
     const ingestionKey = createIngestionKey(source.id, contentHash, fetched.fetchedAt);
+    const rawHtmlPath = `artifacts/${source.id}/${fetched.fetchedAt.toISOString()}/${contentHash}.html`;
+    await writeRawHtmlArtifact(rawHtmlPath, fetched.content);
+
     const snapshot = await deps.snapshotRepository.createIdempotent({
       sourceId: source.id,
       crawledAt: fetched.fetchedAt,
       httpStatus: fetched.statusCode,
-      fetchStatus: fetched.notModified ? "not_modified" : "fetched",
+      fetchStatus: "fetched",
       contentHash,
       ingestionKey,
-      rawHtmlPath: `artifacts/${source.id}/${fetched.fetchedAt.toISOString()}/${contentHash}.html`,
+      rawHtmlPath,
       metadata: {
         traceId,
         etag: fetched.etag,
         lastModified: fetched.lastModified,
         robotsReason: fetched.robotsReason,
-        rawContent: fetched.content,
+        rawContentPreview: fetched.content.slice(0, 512),
       },
     });
 

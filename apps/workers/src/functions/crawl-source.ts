@@ -1,6 +1,7 @@
 import { createWorkerDb } from "../db.js";
 import { inngest } from "../inngest.js";
 import { executeCrawl } from "../pipeline/crawl-executor.js";
+import { assertUuid } from "../utils/validation.js";
 
 export const crawlSource = inngest.createFunction(
   {
@@ -15,7 +16,8 @@ export const crawlSource = inngest.createFunction(
   },
   { event: "crawl/source.scheduled" },
   async ({ event }) => {
-    const { sourceId } = event.data as { sourceId: string };
+    const data = event.data as { sourceId?: unknown };
+    const sourceId = assertUuid(data.sourceId, "sourceId");
     const db = createWorkerDb();
     try {
       return await executeCrawl(db, { sourceId });

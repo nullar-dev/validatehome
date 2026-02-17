@@ -2,6 +2,10 @@ import { isIP } from "node:net";
 
 const BLOCKED_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0"]);
 
+function normalizeHostLiteral(value: string): string {
+  return value.toLowerCase().replaceAll(/(?:^\[)|(?:\]$)/g, "");
+}
+
 function isPrivateIpv4(value: string): boolean {
   const parts = value.split(".").map((part) => Number.parseInt(part, 10));
   if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
@@ -10,6 +14,7 @@ function isPrivateIpv4(value: string): boolean {
 
   const a = parts[0] ?? -1;
   const b = parts[1] ?? -1;
+  if (a === 0) return true;
   if (a === 10) return true;
   if (a === 127) return true;
   if (a === 192 && b === 168) return true;
@@ -18,8 +23,29 @@ function isPrivateIpv4(value: string): boolean {
   return false;
 }
 
+function isPrivateIpv6(value: string): boolean {
+  const normalized = value.toLowerCase();
+  if (normalized === "::" || normalized === "::1") {
+    return true;
+  }
+  if (normalized.startsWith("fc") || normalized.startsWith("fd")) {
+    return true;
+  }
+
+  const hextet = normalized.slice(0, 3);
+  if (["fe8", "fe9", "fea", "feb"].includes(hextet)) {
+    return true;
+  }
+
+  if (normalized.startsWith("::ffff:")) {
+    return true;
+  }
+
+  return false;
+}
+
 function isBlockedHost(hostname: string): boolean {
-  const normalized = hostname.toLowerCase().replaceAll(/^\[|\]$/g, "");
+  const normalized = normalizeHostLiteral(hostname);
   if (BLOCKED_HOSTNAMES.has(normalized)) {
     return true;
   }
@@ -32,7 +58,7 @@ function isBlockedHost(hostname: string): boolean {
     return isPrivateIpv4(normalized);
   }
   if (ipType === 6) {
-    return normalized === "::1" || normalized.startsWith("fc") || normalized.startsWith("fd");
+    return isPrivateIpv6(normalized);
   }
   return false;
 }
@@ -53,8 +79,8 @@ export function validateCrawlUrl(url: string, allowedHost: string): void {
     throw new Error("Blocked host for crawler policy");
   }
 
-  const parsedHost = parsed.hostname.toLowerCase().replaceAll(/^\[|\]$/g, "");
-  const allowlistedHost = allowedHost.toLowerCase().replaceAll(/^\[|\]$/g, "");
+  const parsedHost = normalizeHostLiteral(parsed.hostname);
+  const allowlistedHost = normalizeHostLiteral(allowedHost);
 
   if (parsedHost !== allowlistedHost) {
     throw new Error("URL host mismatch with allowlisted source host");

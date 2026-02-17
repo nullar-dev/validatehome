@@ -809,7 +809,7 @@ describe("crawlJobRepo", () => {
     const repo = crawlJobRepo(db);
     expect(typeof repo.create).toBe("function");
     expect(typeof repo.findById).toBe("function");
-    expect(typeof repo.findUnresolvedFailed).toBe("function");
+    expect(typeof repo.findUnfinished).toBe("function");
     expect(typeof repo.markRunning).toBe("function");
     expect(typeof repo.markSucceeded).toBe("function");
     expect(typeof repo.markFailed).toBe("function");
@@ -838,11 +838,11 @@ describe("crawlJobRepo", () => {
     await expect(repoMissing.findById("missing")).resolves.toBeUndefined();
   });
 
-  it("findUnresolvedFailed returns rows", async () => {
+  it("findUnfinished returns rows", async () => {
     const rows = [{ id: "j-1" }, { id: "j-2" }];
     const db = createMockDb(rows);
     const repo = crawlJobRepo(db);
-    await expect(repo.findUnresolvedFailed(10)).resolves.toEqual(rows);
+    await expect(repo.findUnfinished(10)).resolves.toEqual(rows);
   });
 
   it("markRunning returns updated row", async () => {
@@ -959,7 +959,6 @@ describe("crawlDlqRepo", () => {
   });
 
   it("markReplayed increments replay count", async () => {
-    const current = { id: "d-1", replayCount: 2 };
     const updated = { id: "d-1", replayCount: 3 };
     const makeChain = (rows: unknown[]) => {
       const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
@@ -967,12 +966,8 @@ describe("crawlDlqRepo", () => {
       return proxy;
     };
 
-    let selectCalls = 0;
     const db = {
-      select: vi.fn(() => {
-        selectCalls += 1;
-        return makeChain(selectCalls === 1 ? [current] : []);
-      }),
+      select: vi.fn(() => makeChain([])),
       insert: vi.fn(() => makeChain([])),
       update: vi.fn(() => makeChain([updated])),
       delete: vi.fn(() => makeChain([])),
@@ -990,7 +985,6 @@ describe("crawlDlqRepo", () => {
   });
 
   it("markReplayed throws when update returns no rows", async () => {
-    const current = { id: "d-1", replayCount: 2 };
     const makeChain = (rows: unknown[]) => {
       const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
       attachProxyMethods(proxy);
@@ -998,7 +992,7 @@ describe("crawlDlqRepo", () => {
     };
 
     const db = {
-      select: vi.fn(() => makeChain([current])),
+      select: vi.fn(() => makeChain([])),
       insert: vi.fn(() => makeChain([])),
       update: vi.fn(() => makeChain([])),
       delete: vi.fn(() => makeChain([])),
@@ -1006,7 +1000,7 @@ describe("crawlDlqRepo", () => {
     } as unknown as DbClient;
 
     const repo = crawlDlqRepo(db);
-    await expect(repo.markReplayed("d-1")).rejects.toThrow("Failed to update DLQ entry: d-1");
+    await expect(repo.markReplayed("d-1")).rejects.toThrow("DLQ entry not found: d-1");
   });
 
   it("resolve returns updated row", async () => {

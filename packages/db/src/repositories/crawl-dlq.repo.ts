@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { crawlDlq } from "../schema/crawl.js";
 import type { DbClient } from "./types.js";
 
@@ -40,22 +40,17 @@ export function crawlDlqRepo(db: DbClient) {
     },
 
     async markReplayed(id: string): Promise<CrawlDlqEntry> {
-      const currentRows = await db.select().from(crawlDlq).where(eq(crawlDlq.id, id)).limit(1);
-      const current = currentRows[0];
-      if (!current) {
-        throw new Error(`DLQ entry not found: ${id}`);
-      }
       const rows = await db
         .update(crawlDlq)
         .set({
-          replayCount: current.replayCount + 1,
+          replayCount: sql`${crawlDlq.replayCount} + 1`,
           updatedAt: new Date(),
         })
         .where(eq(crawlDlq.id, id))
         .returning();
       const updated = rows[0];
       if (!updated) {
-        throw new Error(`Failed to update DLQ entry: ${id}`);
+        throw new Error(`DLQ entry not found: ${id}`);
       }
       return updated;
     },

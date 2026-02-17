@@ -12,6 +12,7 @@ const HOST_STATE = new Map<string, HostState>();
 const REQUEST_DELAY_MS = 250;
 const CIRCUIT_OPEN_MS = 60_000;
 const MAX_HOST_FAILURES = 3;
+const FETCH_TIMEOUT_MS = 30_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -34,6 +35,14 @@ function updateHostState(host: string, state: HostState): void {
 }
 
 function isTransientFailure(error: Error): boolean {
+  const maybeCode =
+    typeof error === "object" && "code" in error ? (error.code as string | undefined) : undefined;
+  if (maybeCode && ["ETIMEDOUT", "ECONNRESET", "ENETUNREACH", "EAI_AGAIN"].includes(maybeCode)) {
+    return true;
+  }
+  if (error.name === "AbortError" || error.name === "TimeoutError") {
+    return true;
+  }
   const message = error.message.toLowerCase();
   return (
     message.includes("timeout") ||
@@ -85,6 +94,34 @@ export function resetFetchHostState(): void {
   HOST_STATE.clear();
 }
 
+function resolveAllowedHost(source: Source, parsedHost: string): string {
+  if (source.metadata && typeof source.metadata === "object" && "allowedHost" in source.metadata) {
+    const maybeAllowedHost = source.metadata.allowedHost;
+    if (typeof maybeAllowedHost === "string" && maybeAllowedHost.trim().length > 0) {
+      return maybeAllowedHost;
+    }
+  }
+  return parsedHost;
+}
+
+async function fetchWithTimeout(
+  url: string,
+  options: Omit<RequestInit, "signal">,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Fetch timeout after ${FETCH_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export interface FetchResult {
   readonly statusCode: number;
   readonly content: string;
@@ -97,8 +134,9 @@ export interface FetchResult {
 
 export async function fetchSource(source: Source): Promise<FetchResult> {
   const parsed = new URL(source.url);
+  const allowedHost = resolveAllowedHost(source, parsed.hostname);
   await applyHostRateLimits(parsed.hostname);
-  validateCrawlUrl(source.url, parsed.hostname);
+  validateCrawlUrl(source.url, allowedHost);
 
   const robots = await checkRobotsPolicy(source.url);
   if (!robots.allowed) {
@@ -114,13 +152,20 @@ export async function fetchSource(source: Source): Promise<FetchResult> {
     headers.set("If-Modified-Since", source.lastModifiedHeader);
   }
 
-  const response = await fetch(source.url, {
-    method: "GET",
-    redirect: "follow",
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(source.url, {
+      method: "GET",
+      redirect: "follow",
+      headers,
+    });
+  } catch (error) {
+    markHostFailure(parsed.hostname);
+    throw error;
+  }
 
   if (response.status === 304) {
+    markHostSuccess(parsed.hostname);
     return {
       statusCode: 304,
       content: "",

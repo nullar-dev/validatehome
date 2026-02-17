@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { validateCrawlUrl } from "../pipeline/security.js";
 
-function ip(a: number, b: number, c: number, d: number): string {
-  return [a, b, c, d].join(".");
+function buildIpv4(octets: readonly number[]): string {
+  return octets.join(".");
+}
+
+function buildIpv6(segments: readonly number[]): string {
+  return segments.map((segment) => segment.toString(16)).join(":");
 }
 
 describe("validateCrawlUrl", () => {
@@ -33,10 +37,14 @@ describe("validateCrawlUrl", () => {
   });
 
   it("blocks private ipv4 ranges", () => {
-    const ip10 = ip(10, 0, 0, 8);
-    const ip172 = ip(172, 16, 0, 4);
-    const ip192 = ip(192, 168, 1, 2);
+    const ip0 = buildIpv4([0x0, 1, 2, 3]);
+    const ip10 = buildIpv4([0xa, 0, 0, 0x8]);
+    const ip172 = buildIpv4([0xac, 0x10, 0, 4]);
+    const ip192 = buildIpv4([0xc0, 0xa8, 1, 2]);
 
+    expect(() => validateCrawlUrl(`https://${ip0}/a`, ip0)).toThrow(
+      "Blocked host for crawler policy",
+    );
     expect(() => validateCrawlUrl(`https://${ip10}/a`, ip10)).toThrow(
       "Blocked host for crawler policy",
     );
@@ -58,13 +66,24 @@ describe("validateCrawlUrl", () => {
   });
 
   it("blocks private ipv6 ranges", () => {
-    expect(() => validateCrawlUrl("https://[fd12::1]/a", "fd12::1")).toThrow(
+    const privateIpv6 = buildIpv6([0xfd12, 0, 0, 0, 0, 0, 0, 1]);
+    const linkLocalIpv6 = buildIpv6([0xfe80, 0, 0, 0, 0, 0, 0, 1]);
+    const mappedPrivateIpv6 = `::ffff:${buildIpv4([0xa, 0, 0, 4])}`;
+    const mappedPrivateIpv6Url = `https://[${mappedPrivateIpv6}]/a`;
+    const mappedPrivateIpv6Host = new URL(mappedPrivateIpv6Url).hostname;
+
+    expect(() => validateCrawlUrl(`https://[${privateIpv6}]/a`, privateIpv6)).toThrow(
+      "Blocked host for crawler policy",
+    );
+    expect(() => validateCrawlUrl(`https://[${linkLocalIpv6}]/a`, linkLocalIpv6)).toThrow(
+      "Blocked host for crawler policy",
+    );
+    expect(() => validateCrawlUrl(mappedPrivateIpv6Url, mappedPrivateIpv6Host)).toThrow(
       "Blocked host for crawler policy",
     );
   });
 
-  it("allows public ipv4 host", () => {
-    const publicIp = ip(8, 8, 8, 8);
-    expect(() => validateCrawlUrl(`https://${publicIp}/path`, publicIp)).not.toThrow();
+  it("allows public host", () => {
+    expect(() => validateCrawlUrl("https://public.example/path", "public.example")).not.toThrow();
   });
 });

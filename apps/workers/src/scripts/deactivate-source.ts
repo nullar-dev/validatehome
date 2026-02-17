@@ -1,12 +1,14 @@
 import { sourceRepo } from "@validatehome/db";
 import { createWorkerDb } from "../db.js";
+import { assertUuid } from "../utils/validation.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2).filter((arg) => arg !== "--");
-  const sourceId = args[0];
-  if (!sourceId) {
+  const rawSourceId = args[0];
+  if (!rawSourceId) {
     throw new Error("Usage: deactivate-source -- <sourceId>");
   }
+  const sourceId = assertUuid(rawSourceId, "sourceId");
 
   const db = createWorkerDb();
   try {

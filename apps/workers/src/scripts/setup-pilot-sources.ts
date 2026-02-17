@@ -43,6 +43,7 @@ async function main(): Promise<void> {
     let updated = 0;
 
     for (const config of PILOT_SOURCES) {
+      const allowedHost = new URL(config.url).hostname;
       const existing = await repo.findByUrl(config.url);
       if (!existing) {
         await repo.create({
@@ -54,6 +55,7 @@ async function main(): Promise<void> {
             country: config.country,
             tier: "pilot",
             owner: "phase1b",
+            allowedHost,
           },
         });
         created += 1;
@@ -68,6 +70,7 @@ async function main(): Promise<void> {
           country: config.country,
           tier: "pilot",
           owner: "phase1b",
+          allowedHost,
         },
       });
       updated += 1;

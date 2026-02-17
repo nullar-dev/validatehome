@@ -1,6 +1,9 @@
 import { crawlDlqRepo, type Database } from "@validatehome/db";
 import { executeCrawl } from "./crawl-executor.js";
 
+// Replay helpers are CLI-initiated operational tools for manual DLQ recovery.
+// They call executeCrawl directly to keep recovery deterministic and synchronous.
+
 export async function replayDlqById(db: Database, dlqId: string): Promise<boolean> {
   const repo = crawlDlqRepo(db);
   const entry = await repo.findById(dlqId);

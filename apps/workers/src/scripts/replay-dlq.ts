@@ -1,5 +1,6 @@
 import { createWorkerDb } from "../db.js";
 import { replayDlqById, replayDlqBySource } from "../pipeline/replay.js";
+import { assertUuid } from "../utils/validation.js";
 
 async function main(): Promise<void> {
   const db = createWorkerDb();
@@ -9,7 +10,11 @@ async function main(): Promise<void> {
     const sourceArg = args.find((arg) => arg.startsWith("--sourceId="));
 
     if (idArg) {
-      const id = idArg.replace("--id=", "");
+      const rawId = idArg.replace("--id=", "").trim();
+      if (!rawId) {
+        throw new Error("Usage: replay:dlq -- --id=<dlqId> OR replay:dlq -- --sourceId=<sourceId>");
+      }
+      const id = assertUuid(rawId, "id");
       const ok = await replayDlqById(db, id);
       process.stdout.write(`Replay by id ${id}: ${ok ? "ok" : "failed"}\n`);
       if (!ok) {
@@ -19,7 +24,11 @@ async function main(): Promise<void> {
     }
 
     if (sourceArg) {
-      const sourceId = sourceArg.replace("--sourceId=", "");
+      const rawSourceId = sourceArg.replace("--sourceId=", "").trim();
+      if (!rawSourceId) {
+        throw new Error("Usage: replay:dlq -- --id=<dlqId> OR replay:dlq -- --sourceId=<sourceId>");
+      }
+      const sourceId = assertUuid(rawSourceId, "sourceId");
       const count = await replayDlqBySource(db, sourceId);
       process.stdout.write(`Replayed ${count} DLQ entries for source ${sourceId}\n`);
       return;

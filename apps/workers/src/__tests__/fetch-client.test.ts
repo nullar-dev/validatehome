@@ -22,8 +22,17 @@ const baseSource: Source = {
   updatedAt: new Date(),
 };
 
+const sourceWithAllowlistedHost: Source = {
+  ...baseSource,
+  metadata: {
+    country: "US",
+    allowedHost: "allowed.gov",
+  },
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   resetRobotsCache();
   resetFetchHostState();
 });
@@ -71,6 +80,12 @@ describe("fetchSource", () => {
     expect(result.notModified).toBe(false);
     expect(result.content).toContain("Program");
     expect(result.etag).toBe("etag-2");
+  });
+
+  it("rejects mismatched allowlisted host", async () => {
+    await expect(fetchSource(sourceWithAllowlistedHost)).rejects.toThrow(
+      "URL host mismatch with allowlisted source host",
+    );
   });
 });
 
@@ -131,5 +146,15 @@ describe("fetchSourceWithRetry", () => {
     await expect(fetchSource(baseSource)).rejects.toThrow("Fetch failed with status 500");
     await expect(fetchSource(baseSource)).rejects.toThrow("Fetch failed with status 500");
     await expect(fetchSource(baseSource)).rejects.toThrow("Fetch blocked by circuit breaker until");
+  });
+
+  it("treats timeout as transient", async () => {
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
+
+    await expect(fetchSourceWithRetry(baseSource, 2)).rejects.toThrow(
+      "Fetch timeout after 30000ms",
+    );
   });
 });

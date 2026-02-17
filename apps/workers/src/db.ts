@@ -5,16 +5,23 @@ function loadEnvIfPresent(): void {
   if (typeof loadEnvFile !== "function") {
     return;
   }
-  try {
-    loadEnvFile(".env");
-  } catch {
-    // noop
-  }
-  try {
-    loadEnvFile("../../.env");
-  } catch {
-    // noop
-  }
+
+  const tryLoad = (filePath: string): void => {
+    try {
+      loadEnvFile(filePath);
+    } catch (error) {
+      const maybeCode =
+        typeof error === "object" && error && "code" in error
+          ? (error.code as string | undefined)
+          : undefined;
+      if (maybeCode !== "ENOENT") {
+        throw error;
+      }
+    }
+  };
+
+  tryLoad(".env");
+  tryLoad("../../.env");
 }
 
 export function createWorkerDb() {

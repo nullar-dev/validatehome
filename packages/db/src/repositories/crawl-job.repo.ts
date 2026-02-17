@@ -5,7 +5,27 @@ import type { DbClient } from "./types.js";
 export type CrawlJob = typeof crawlJobs.$inferSelect;
 export type NewCrawlJob = typeof crawlJobs.$inferInsert;
 
-export function crawlJobRepo(db: DbClient) {
+export interface CrawlJobRepository {
+  create(data: NewCrawlJob): Promise<CrawlJob>;
+  findById(id: string): Promise<CrawlJob | undefined>;
+  findUnfinished(limit?: number): Promise<CrawlJob[]>;
+  markRunning(id: string): Promise<CrawlJob>;
+  markSucceeded(
+    id: string,
+    reviewRequired: boolean,
+    reviewReasons: readonly string[],
+    metadata?: Record<string, unknown>,
+  ): Promise<CrawlJob>;
+  markFailed(
+    id: string,
+    errorClass: CrawlJob["errorClass"],
+    errorMessage: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<CrawlJob>;
+  markPolicyBlocked(id: string, errorMessage: string): Promise<CrawlJob>;
+}
+
+export function crawlJobRepo(db: DbClient): CrawlJobRepository {
   return {
     async create(data: NewCrawlJob): Promise<CrawlJob> {
       const rows = await db.insert(crawlJobs).values(data).returning();
@@ -21,7 +41,7 @@ export function crawlJobRepo(db: DbClient) {
       return rows[0];
     },
 
-    async findUnresolvedFailed(limit = 100): Promise<CrawlJob[]> {
+    async findUnfinished(limit = 100): Promise<CrawlJob[]> {
       return db
         .select()
         .from(crawlJobs)
