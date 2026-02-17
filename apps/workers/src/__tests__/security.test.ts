@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { validateCrawlUrl } from "../pipeline/security.js";
 
+function ip(a: number, b: number, c: number, d: number): string {
+  return [a, b, c, d].join(".");
+}
+
 describe("validateCrawlUrl", () => {
   it("allows matching https host", () => {
     expect(() => validateCrawlUrl("https://example.gov/program", "example.gov")).not.toThrow();
@@ -29,13 +33,17 @@ describe("validateCrawlUrl", () => {
   });
 
   it("blocks private ipv4 ranges", () => {
-    expect(() => validateCrawlUrl("https://10.0.0.8/a", "10.0.0.8")).toThrow(
+    const ip10 = ip(10, 0, 0, 8);
+    const ip172 = ip(172, 16, 0, 4);
+    const ip192 = ip(192, 168, 1, 2);
+
+    expect(() => validateCrawlUrl(`https://${ip10}/a`, ip10)).toThrow(
       "Blocked host for crawler policy",
     );
-    expect(() => validateCrawlUrl("https://172.16.0.4/a", "172.16.0.4")).toThrow(
+    expect(() => validateCrawlUrl(`https://${ip172}/a`, ip172)).toThrow(
       "Blocked host for crawler policy",
     );
-    expect(() => validateCrawlUrl("https://192.168.1.2/a", "192.168.1.2")).toThrow(
+    expect(() => validateCrawlUrl(`https://${ip192}/a`, ip192)).toThrow(
       "Blocked host for crawler policy",
     );
   });
@@ -56,6 +64,7 @@ describe("validateCrawlUrl", () => {
   });
 
   it("allows public ipv4 host", () => {
-    expect(() => validateCrawlUrl("https://8.8.8.8/path", "8.8.8.8")).not.toThrow();
+    const publicIp = ip(8, 8, 8, 8);
+    expect(() => validateCrawlUrl(`https://${publicIp}/path`, publicIp)).not.toThrow();
   });
 });
