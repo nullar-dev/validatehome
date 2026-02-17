@@ -829,13 +829,15 @@ describe("crawlJobRepo", () => {
     await expect(repo.create({ sourceId: "s-1" })).rejects.toThrow("Failed to create crawl job");
   });
 
-  it("findById returns row and undefined", async () => {
+  it("findById returns row when present", async () => {
     const row = { id: "j-1" };
-    const repoWithRow = crawlJobRepo(createMockDb([row]));
-    await expect(repoWithRow.findById("j-1")).resolves.toEqual(row);
+    const repo = crawlJobRepo(createMockDb([row]));
+    await expect(repo.findById("j-1")).resolves.toEqual(row);
+  });
 
-    const repoMissing = crawlJobRepo(createMockDb([]));
-    await expect(repoMissing.findById("missing")).resolves.toBeUndefined();
+  it("findById returns undefined when missing", async () => {
+    const repo = crawlJobRepo(createMockDb([]));
+    await expect(repo.findById("missing")).resolves.toBeUndefined();
   });
 
   it("findUnfinished returns rows", async () => {
@@ -890,13 +892,15 @@ describe("crawlJobRepo", () => {
     );
   });
 
-  it("markPolicyBlocked returns updated row and throws when missing", async () => {
+  it("markPolicyBlocked returns updated row", async () => {
     const row = { id: "j-1", status: "policy_blocked" };
-    const repoWithRow = crawlJobRepo(createMockDb([row]));
-    await expect(repoWithRow.markPolicyBlocked("j-1", "blocked")).resolves.toEqual(row);
+    const repo = crawlJobRepo(createMockDb([row]));
+    await expect(repo.markPolicyBlocked("j-1", "blocked")).resolves.toEqual(row);
+  });
 
-    const repoMissing = crawlJobRepo(createMockDb([]));
-    await expect(repoMissing.markPolicyBlocked("missing", "blocked")).rejects.toThrow(
+  it("markPolicyBlocked throws when missing", async () => {
+    const repo = crawlJobRepo(createMockDb([]));
+    await expect(repo.markPolicyBlocked("missing", "blocked")).rejects.toThrow(
       "Crawl job not found: missing",
     );
   });
@@ -941,20 +945,28 @@ describe("crawlDlqRepo", () => {
     ).rejects.toThrow("Failed to create DLQ entry");
   });
 
-  it("findById returns row and undefined", async () => {
+  it("findById returns row when present", async () => {
     const row = { id: "d-1" };
-    const repoWithRow = crawlDlqRepo(createMockDb([row]));
-    await expect(repoWithRow.findById("d-1")).resolves.toEqual(row);
-
-    const repoMissing = crawlDlqRepo(createMockDb([]));
-    await expect(repoMissing.findById("missing")).resolves.toBeUndefined();
+    const repo = crawlDlqRepo(createMockDb([row]));
+    await expect(repo.findById("d-1")).resolves.toEqual(row);
   });
 
-  it("findUnresolved and findUnresolvedBySource return rows", async () => {
+  it("findById returns undefined when missing", async () => {
+    const repo = crawlDlqRepo(createMockDb([]));
+    await expect(repo.findById("missing")).resolves.toBeUndefined();
+  });
+
+  it("findUnresolved returns rows", async () => {
     const rows = [{ id: "d-1" }];
     const db = createMockDb(rows);
     const repo = crawlDlqRepo(db);
     await expect(repo.findUnresolved(10)).resolves.toEqual(rows);
+  });
+
+  it("findUnresolvedBySource returns rows", async () => {
+    const rows = [{ id: "d-1" }];
+    const db = createMockDb(rows);
+    const repo = crawlDlqRepo(db);
     await expect(repo.findUnresolvedBySource("s-1", 10)).resolves.toEqual(rows);
   });
 
@@ -1022,6 +1034,7 @@ describe("diffRepo", () => {
     const db = createMockDb();
     const repo = diffRepo(db);
     expect(typeof repo.create).toBe("function");
+    expect(typeof repo.createMany).toBe("function");
     expect(typeof repo.findUnreviewed).toBe("function");
     expect(typeof repo.findBySource).toBe("function");
     expect(typeof repo.markReviewed).toBe("function");
@@ -1054,6 +1067,36 @@ describe("diffRepo", () => {
         significanceScore: 75,
       }),
     ).rejects.toThrow("Failed to create diff");
+  });
+
+  it("createMany returns empty array for empty input", async () => {
+    const db = createMockDb([]);
+    const repo = diffRepo(db);
+    await expect(repo.createMany([])).resolves.toEqual([]);
+  });
+
+  it("createMany returns inserted rows", async () => {
+    const rows = [{ id: "d-1" }, { id: "d-2" }];
+    const db = createMockDb(rows);
+    const repo = diffRepo(db);
+    await expect(
+      repo.createMany([
+        {
+          sourceId: "s-1",
+          oldSnapshotId: "cs-1",
+          newSnapshotId: "cs-2",
+          diffType: "text",
+          significanceScore: 50,
+        },
+        {
+          sourceId: "s-1",
+          oldSnapshotId: "cs-1",
+          newSnapshotId: "cs-2",
+          diffType: "semantic",
+          significanceScore: 80,
+        },
+      ]),
+    ).resolves.toEqual(rows);
   });
 
   it("findUnreviewed returns rows", async () => {

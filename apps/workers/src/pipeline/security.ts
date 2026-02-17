@@ -23,6 +23,37 @@ function isPrivateIpv4(value: string): boolean {
   return false;
 }
 
+function extractMappedIpv4(value: string): string | undefined {
+  if (!value.startsWith("::ffff:")) {
+    return undefined;
+  }
+
+  const mappedValue = value.slice(7);
+  if (mappedValue.includes(".")) {
+    return mappedValue;
+  }
+
+  const parts = mappedValue.split(":");
+  if (parts.length !== 2) {
+    return undefined;
+  }
+
+  const first = Number.parseInt(parts[0] ?? "", 16);
+  const second = Number.parseInt(parts[1] ?? "", 16);
+  if (
+    !Number.isFinite(first) ||
+    !Number.isFinite(second) ||
+    first < 0 ||
+    first > 0xffff ||
+    second < 0 ||
+    second > 0xffff
+  ) {
+    return undefined;
+  }
+
+  return `${(first >> 8) & 0xff}.${first & 0xff}.${(second >> 8) & 0xff}.${second & 0xff}`;
+}
+
 function isPrivateIpv6(value: string): boolean {
   const normalized = value.toLowerCase();
   if (normalized === "::" || normalized === "::1") {
@@ -37,8 +68,9 @@ function isPrivateIpv6(value: string): boolean {
     return true;
   }
 
-  if (normalized.startsWith("::ffff:")) {
-    return true;
+  const mappedIpv4 = extractMappedIpv4(normalized);
+  if (mappedIpv4) {
+    return isPrivateIpv4(mappedIpv4);
   }
 
   return false;

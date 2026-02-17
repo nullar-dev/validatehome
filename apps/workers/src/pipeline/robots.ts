@@ -30,30 +30,55 @@ function isPathBlocked(pathname: string, disallowRules: readonly string[]): bool
   });
 }
 
+function parseDirective(
+  line: string,
+): { readonly key: string; readonly value: string } | undefined {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) {
+    return undefined;
+  }
+
+  const [rawKey, ...rawValue] = trimmed.split(":");
+  if (!rawKey || rawValue.length === 0) {
+    return undefined;
+  }
+
+  return {
+    key: rawKey.trim().toLowerCase(),
+    value: rawValue.join(":").trim(),
+  };
+}
+
+function isCrawlerUserAgent(value: string): boolean {
+  return value === "*" || value.toLowerCase() === "validatehomebot";
+}
+
 function parseRobots(content: string): RobotsRuleSet {
   const lines = content.split(/\r?\n/);
   const disallow: string[] = [];
-  let inGlobalAgent = false;
+  let groupMatches = false;
+  let sawDirective = false;
 
   for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
+    const directive = parseDirective(line);
+    if (!directive) {
       continue;
     }
 
-    const [rawKey, ...rawValue] = trimmed.split(":");
-    if (!rawKey || rawValue.length === 0) {
+    if (directive.key === "user-agent") {
+      if (sawDirective) {
+        groupMatches = false;
+        sawDirective = false;
+      }
+      if (isCrawlerUserAgent(directive.value)) {
+        groupMatches = true;
+      }
       continue;
     }
 
-    const key = rawKey.trim().toLowerCase();
-    const value = rawValue.join(":").trim();
-    if (key === "user-agent") {
-      inGlobalAgent = value === "*" || value.toLowerCase() === "validatehomebot";
-      continue;
-    }
-    if (inGlobalAgent && key === "disallow" && value) {
-      disallow.push(value);
+    sawDirective = true;
+    if (groupMatches && directive.key === "disallow" && directive.value) {
+      disallow.push(directive.value);
     }
   }
 

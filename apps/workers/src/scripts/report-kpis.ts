@@ -1,4 +1,5 @@
 import { crawlJobs } from "@validatehome/db";
+import { gte } from "drizzle-orm";
 import { createWorkerDb } from "../db.js";
 
 function extractQuality(job: typeof crawlJobs.$inferSelect): {
@@ -23,9 +24,12 @@ function extractQuality(job: typeof crawlJobs.$inferSelect): {
 async function main(): Promise<void> {
   const db = createWorkerDb();
   try {
-    const jobs = await db.select().from(crawlJobs).limit(10_000);
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const recentJobs = jobs.filter((job) => job.createdAt >= cutoff);
+    const recentJobs = await db
+      .select()
+      .from(crawlJobs)
+      .where(gte(crawlJobs.createdAt, cutoff))
+      .limit(10_000);
 
     const succeededJobs = recentJobs.filter((job) => job.status === "succeeded");
     const fetchStatuses = succeededJobs.map((job) => {

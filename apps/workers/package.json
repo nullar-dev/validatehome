@@ -25,6 +25,7 @@
     "@validatehome/db": "workspace:*",
     "@validatehome/normalization": "workspace:*",
     "@validatehome/shared": "workspace:*",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.6.16",
     "inngest": "^3.27.6"
   },

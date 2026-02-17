@@ -5,7 +5,16 @@ import type { DbClient } from "./types.js";
 export type CrawlDlqEntry = typeof crawlDlq.$inferSelect;
 export type NewCrawlDlqEntry = typeof crawlDlq.$inferInsert;
 
-export function crawlDlqRepo(db: DbClient) {
+export interface CrawlDlqRepository {
+  create(data: NewCrawlDlqEntry): Promise<CrawlDlqEntry>;
+  findById(id: string): Promise<CrawlDlqEntry | undefined>;
+  findUnresolved(limit?: number): Promise<CrawlDlqEntry[]>;
+  findUnresolvedBySource(sourceId: string, limit?: number): Promise<CrawlDlqEntry[]>;
+  markReplayed(id: string): Promise<CrawlDlqEntry>;
+  resolve(id: string): Promise<CrawlDlqEntry>;
+}
+
+export function crawlDlqRepo(db: DbClient): CrawlDlqRepository {
   return {
     async create(data: NewCrawlDlqEntry): Promise<CrawlDlqEntry> {
       const rows = await db.insert(crawlDlq).values(data).returning();

@@ -9,6 +9,10 @@ async function main(): Promise<void> {
     const idArg = args.find((arg) => arg.startsWith("--id="));
     const sourceArg = args.find((arg) => arg.startsWith("--sourceId="));
 
+    if (idArg && sourceArg) {
+      throw new Error("Usage: replay:dlq -- --id=<dlqId> OR replay:dlq -- --sourceId=<sourceId>");
+    }
+
     if (idArg) {
       const rawId = idArg.replace("--id=", "").trim();
       if (!rawId) {

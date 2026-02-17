@@ -16,6 +16,16 @@ export function diffRepo(db: DbClient) {
       return created;
     },
 
+    async createMany(data: readonly NewDiff[]): Promise<Diff[]> {
+      if (data.length === 0) {
+        return [];
+      }
+      return db
+        .insert(diffs)
+        .values([...data])
+        .returning();
+    },
+
     async findUnreviewed(options?: { limit?: number; offset?: number }): Promise<Diff[]> {
       const limit = options?.limit ?? 100;
       const offset = options?.offset ?? 0;

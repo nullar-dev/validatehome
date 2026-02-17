@@ -43,6 +43,10 @@ function extractHighImpactSignals(content: string): {
 } {
   const lower = normalizeContent(content);
   const statusMatch = /(open|waitlist|reserved|funded|closed|coming soon|coming_soon)/.exec(lower);
+  const normalizedStatus = statusMatch?.[1]
+    ?.toLowerCase()
+    .replaceAll(/[-\s]+/g, "_")
+    .replaceAll(/_+/g, "_");
   const budgetMatch = /(budget|funding|remaining)\D{0,15}(\d[\d,]*(?:\.\d{1,2})?)/.exec(lower);
   const deadlineMatch =
     /(deadline|expires|close[sd])\D{0,15}(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/.exec(
@@ -50,7 +54,7 @@ function extractHighImpactSignals(content: string): {
     );
 
   return {
-    status: statusMatch?.[1],
+    status: normalizedStatus,
     budget: budgetMatch?.[2],
     deadline: deadlineMatch?.[2],
   };

@@ -151,7 +151,21 @@ describe("fetchSourceWithRetry", () => {
   it("treats timeout as transient", async () => {
     const abortError = new Error("aborted");
     abortError.name = "AbortError";
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        const requestUrl = typeof input === "string" ? input : input.toString();
+        if (requestUrl.endsWith("/robots.txt")) {
+          return Promise.resolve(
+            new Response("User-agent: *\nDisallow:", {
+              status: 200,
+              headers: { "content-type": "text/plain" },
+            }),
+          );
+        }
+        return Promise.reject(abortError);
+      }),
+    );
 
     await expect(fetchSourceWithRetry(baseSource, 2)).rejects.toThrow(
       "Fetch timeout after 30000ms",

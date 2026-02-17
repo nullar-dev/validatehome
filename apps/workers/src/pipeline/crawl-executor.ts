@@ -67,6 +67,7 @@ async function createOrResumeJob(
 async function persistDiffs(
   deps: CrawlDependencies,
   sourceId: string,
+  traceId: string,
   previousSnapshot: Awaited<ReturnType<ReturnType<typeof crawlSnapshotRepo>["findLatestBySource"]>>,
   newSnapshotId: string,
   currentContent: string,
@@ -78,22 +79,34 @@ async function persistDiffs(
   let previousContent = "";
   try {
     previousContent = await readFile(previousSnapshot.rawHtmlPath, "utf8");
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown diff artifact read error";
+    logStructuredEvent({
+      traceId,
+      sourceId,
+      stage: "diff",
+      result: "error",
+      details: {
+        reason: "artifact_read_failed",
+        previousSnapshotId: previousSnapshot.id,
+        newSnapshotId,
+        rawHtmlPath: previousSnapshot.rawHtmlPath,
+        message,
+      },
+    });
     return;
   }
 
   const diffRecords = buildDiffRecords(previousContent, currentContent);
-  await Promise.all(
-    diffRecords.map((record) =>
-      deps.diffRepository.create({
-        sourceId,
-        oldSnapshotId: previousSnapshot.id,
-        newSnapshotId,
-        diffType: record.diffType,
-        significanceScore: record.significanceScore,
-        changesJson: record.changesJson,
-      }),
-    ),
+  await deps.diffRepository.createMany(
+    diffRecords.map((record) => ({
+      sourceId,
+      oldSnapshotId: previousSnapshot.id,
+      newSnapshotId,
+      diffType: record.diffType,
+      significanceScore: record.significanceScore,
+      changesJson: record.changesJson,
+    })),
   );
 }
 
@@ -214,7 +227,7 @@ export async function executeCrawl(
 
     const parseOutcome = await runParsePipeline(source, fetched.content);
 
-    await persistDiffs(deps, source.id, previousSnapshot, snapshot.id, fetched.content);
+    await persistDiffs(deps, source.id, traceId, previousSnapshot, snapshot.id, fetched.content);
 
     await deps.jobRepository.markSucceeded(
       job.id,

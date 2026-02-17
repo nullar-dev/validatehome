@@ -42,38 +42,56 @@ async function main(): Promise<void> {
       throw new Error("Drill source missing");
     }
 
-    await sourceRepository.update(source.id, { url: "https://localhost:3000/drill" });
-    const failedRun = await executeCrawl(db, { sourceId: source.id });
-    if (failedRun.success) {
-      throw new Error("Expected failure during blocked-host drill");
+    const originalUrl = source.url;
+    let replayOk = false;
+    let beforeCount = 0;
+    let afterCount = 0;
+    let noDuplicateIngestion = false;
+    let uniqueIngestionKeysCount = 0;
+
+    try {
+      await sourceRepository.update(source.id, { url: "https://localhost:3000/drill" });
+      const failedRun = await executeCrawl(db, { sourceId: source.id });
+      if (failedRun.success) {
+        throw new Error("Expected failure during blocked-host drill");
+      }
+
+      const dlqEntries = await dlqRepository.findUnresolvedBySource(source.id, 1);
+      const dlqEntry = dlqEntries[0];
+      if (!dlqEntry) {
+        throw new Error("Expected unresolved DLQ entry after failed drill run");
+      }
+
+      await sourceRepository.update(source.id, {
+        url: "https://www.energy.gov/energysaver/heat-pump-systems",
+      });
+      replayOk = await replayDlqById(db, dlqEntry.id);
+      if (!replayOk) {
+        throw new Error("Replay failed for drill source");
+      }
+
+      const before = await snapshotRepository.findBySource(source.id);
+      const firstReplayRun = await executeCrawl(db, { sourceId: source.id });
+      if (!firstReplayRun.success) {
+        throw new Error("Expected successful crawl after replay (1)");
+      }
+      const secondReplayRun = await executeCrawl(db, { sourceId: source.id });
+      if (!secondReplayRun.success) {
+        throw new Error("Expected successful crawl after replay (2)");
+      }
+      const after = await snapshotRepository.findBySource(source.id);
+
+      beforeCount = before.length;
+      afterCount = after.length;
+      const uniqueIngestionKeys = new Set(
+        after.map((snapshot) => snapshot.ingestionKey).filter(Boolean),
+      );
+      uniqueIngestionKeysCount = uniqueIngestionKeys.size;
+      noDuplicateIngestion =
+        uniqueIngestionKeys.size === after.filter((snapshot) => snapshot.ingestionKey).length;
+    } finally {
+      await sourceRepository.update(source.id, { url: originalUrl });
     }
-
-    const dlqEntries = await dlqRepository.findUnresolvedBySource(source.id, 1);
-    const dlqEntry = dlqEntries[0];
-    if (!dlqEntry) {
-      throw new Error("Expected unresolved DLQ entry after failed drill run");
-    }
-
-    await sourceRepository.update(source.id, {
-      url: "https://www.energy.gov/energysaver/heat-pump-systems",
-    });
-    const replayOk = await replayDlqById(db, dlqEntry.id);
-    if (!replayOk) {
-      throw new Error("Replay failed for drill source");
-    }
-
-    const before = await snapshotRepository.findBySource(source.id);
-    await executeCrawl(db, { sourceId: source.id });
-    await executeCrawl(db, { sourceId: source.id });
-    const after = await snapshotRepository.findBySource(source.id);
-
-    const beforeCount = before.length;
-    const afterCount = after.length;
-    const uniqueIngestionKeys = new Set(
-      after.map((snapshot) => snapshot.ingestionKey).filter(Boolean),
-    );
-    const noDuplicateIngestion =
-      uniqueIngestionKeys.size === after.filter((s) => s.ingestionKey).length;
 
     process.stdout.write(
       `${JSON.stringify(
@@ -82,7 +100,7 @@ async function main(): Promise<void> {
           replayResolved: replayOk,
           snapshotsBefore: beforeCount,
           snapshotsAfter: afterCount,
-          uniqueIngestionKeys: uniqueIngestionKeys.size,
+          uniqueIngestionKeys: uniqueIngestionKeysCount,
           noDuplicateIngestion,
         },
         null,
