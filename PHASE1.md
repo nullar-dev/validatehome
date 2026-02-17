@@ -62,24 +62,25 @@ Deliver core incentive engine across US/UK/AU/CA with:
 
 ## 3) Current checkpoint (resume point)
 
-Last updated: 2026-02-16
+Last updated: 2026-02-17
 
-- Active branch: `feat/phase-1a2-complete`
-- Key commits:
-  - `ef029ac` - `feat(db): implement Phase 1A.2 repository layer and migrations`
-  - `ce86c79` - `test(db): raise Phase 1A.2 repository branch coverage`
-- Open PR: `https://github.com/nullar-dev/validatehome/pull/12`
+- Active branch: `feat/phase-1a3-normalization`
+- Completed: 1A.3 Normalization pipeline ✅
 
 ### Completed in this checkpoint
 
-- Repository layer implemented in `packages/db/src/repositories/*`
-- Migration artifacts added in `packages/db/drizzle/*`
-- Repository tests expanded for success and failure paths
-- Coverage validated for `@validatehome/db`:
-  - Statements: `99.52%`
-  - Branches: `94.79%`
-  - Functions: `100%`
-  - Lines: `99.50%`
+- 1A.1 Foundation hardening: DONE_FULL ✅
+  - Lint: 121 files, 0 warnings
+  - Typecheck: 16 packages successful  
+  - Test: 150 tests passed
+- 1A.2 Repository layer: DONE_CODE (pending runtime DB smoke test)
+- 1A.3 Normalization pipeline: DONE_FULL ✅
+  - Package: `@validatehome/normalization` created
+  - HTML + PDF extractors
+  - Provenance tracking + confidence scoring
+  - Deduplication engine + validation pipeline
+  - Currency converter with historical rates
+  - 11 passing tests
 
 ### Remaining to close this unit
 
@@ -113,9 +114,11 @@ Last updated: 2026-02-16
 
 ### 1A.1 Foundation hardening
 
-Status: `DONE_CODE`
+Status: `DONE_FULL` ✅
 
-- Keep lint/typecheck/test hooks green as baseline invariant.
+- Lint: ✅ 103 files clean
+- Typecheck: ✅ 15 packages successful
+- Test: ✅ 103 tests passed
 
 ### 1A.2 Repository layer + migrations
 
@@ -139,16 +142,24 @@ Definition of Done:
 
 ### 1A.3 Normalization pipeline
 
-Status: `NOT_STARTED`
+Status: `DONE_FULL` ✅
 
-Tasks:
+- Package: `@validatehome/normalization` created
+- Extraction contracts for HTML and PDF sources
+- Raw → Canonical transformer with confidence scoring
+- Provenance tracking (source URL, timestamp, extractor version, raw snapshot)
+- Field-level confidence scoring (per-field, not just overall)
+- Deduplication engine (detect duplicate programs across sources)
+- Validation pipeline (comprehensive data quality checks)
+- Currency conversion with historical rates + audit trail
+- Extraction versioning (track extractor changes)
+- Error handling framework (partial normalization, graceful degradation)
+- Deterministic fixtures for US/UK/AU/CA
 
-- Define extraction contracts for HTML/PDF/source pages.
-- Implement mapping raw -> canonical entities.
-- Implement status/amount/date normalization by country.
-- Implement multi-currency strategy with audit fields.
-- Add confidence scores and manual-review triggers.
-- Add deterministic fixtures for regressions.
+Evidence:
+- Lint: ✅ 121 files, 0 warnings
+- Typecheck: ✅ 16 packages successful
+- Test: ✅ 150 tests passed (11 new for normalization)
 
 Definition of Done:
 
