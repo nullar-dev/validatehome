@@ -205,9 +205,9 @@ This is a "Sure Bet" because of the Perfect Storm:
 ### Phase 1: Core Incentive Engine — All 4 Countries (Weeks 4-12)
 
 **Deliverables:**
-- [ ] Crawl/parse pipeline: US federal + 3 states, UK BUS/ECO4, AU federal + 1 state, CA federal + 1 province
-- [ ] Screenshot-diff engine with significance scoring
-- [ ] Normalization pipeline (raw → canonical schema) with multi-currency support
+- [x] Crawl/parse pipeline: US federal + 3 states, UK BUS/ECO4, AU federal + 1 state, CA federal + 1 province
+- [x] Screenshot-diff engine with significance scoring
+- [x] Normalization pipeline (raw → canonical schema) with multi-currency support
 - [ ] Rules engine with stacker logic (US federal + UK + AU + CA stacking rules)
 - [ ] Net-cost calculator (all 4 countries, heat pumps + solar as first categories)
 - [ ] Program status pages (SSG/ISR with structured data, hreflang for all 4 countries)

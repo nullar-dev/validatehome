@@ -41,6 +41,33 @@
     "db:push": {
       "cache": false
     },
+    "crawl:source": {
+      "cache": false
+    },
+    "crawl:due": {
+      "cache": false
+    },
+    "sources:pilot": {
+      "cache": false
+    },
+    "sources:reset": {
+      "cache": false
+    },
+    "sources:deactivate": {
+      "cache": false
+    },
+    "replay:dlq": {
+      "cache": false
+    },
+    "drill:resilience": {
+      "cache": false
+    },
+    "benchmark:diff": {
+      "cache": false
+    },
+    "report:kpis": {
+      "cache": false
+    },
     "clean": {
       "cache": false
     }

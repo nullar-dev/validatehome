@@ -158,6 +158,9 @@ importers:
       '@validatehome/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@validatehome/normalization':
+        specifier: workspace:*
+        version: link:../../packages/normalization
       '@validatehome/shared':
         specifier: workspace:*
         version: link:../../packages/shared

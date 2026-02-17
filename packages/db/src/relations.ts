@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { benefits } from "./schema/benefit.js";
 import { productCategories, programCategories } from "./schema/category.js";
-import { crawlSnapshots, diffs, sources } from "./schema/crawl.js";
+import { crawlDlq, crawlJobs, crawlSnapshots, diffs, sources } from "./schema/crawl.js";
 import { eligibilityRules, stackabilityConstraints } from "./schema/eligibility.js";
 import { jurisdictions } from "./schema/jurisdiction.js";
 import { notifySubscriptions } from "./schema/notification.js";
@@ -106,8 +106,18 @@ export const sourcesRelations = relations(sources, ({ one, many }) => ({
     fields: [sources.jurisdictionId],
     references: [jurisdictions.id],
   }),
+  crawlJobs: many(crawlJobs),
+  crawlDlq: many(crawlDlq),
   crawlSnapshots: many(crawlSnapshots),
   diffs: many(diffs),
+}));
+
+export const crawlJobsRelations = relations(crawlJobs, ({ one, many }) => ({
+  source: one(sources, {
+    fields: [crawlJobs.sourceId],
+    references: [sources.id],
+  }),
+  dlqEntries: many(crawlDlq),
 }));
 
 export const crawlSnapshotsRelations = relations(crawlSnapshots, ({ one }) => ({
@@ -131,6 +141,17 @@ export const diffsRelations = relations(diffs, ({ one }) => ({
     fields: [diffs.newSnapshotId],
     references: [crawlSnapshots.id],
     relationName: "newSnapshot",
+  }),
+}));
+
+export const crawlDlqRelations = relations(crawlDlq, ({ one }) => ({
+  source: one(sources, {
+    fields: [crawlDlq.sourceId],
+    references: [sources.id],
+  }),
+  job: one(crawlJobs, {
+    fields: [crawlDlq.jobId],
+    references: [crawlJobs.id],
   }),
 }));
 

@@ -71,7 +71,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
       const status = this.extractStatus(html, selectors.status);
       const budget = this.extractBudget(html, selectors.budget);
       const dates = this.extractDates(html, selectors.dates);
-      const jurisdiction = this.extractField(html, selectors.jurisdiction, "jurisdiction");
+      const jurisdiction = this.extractJurisdiction(html, selectors.jurisdiction, source.country);
       const jurisdictionLevel = this.extractJurisdictionLevel(html, selectors.jurisdiction);
       const benefits = this.extractBenefits(html, selectors.benefits, source.country);
       const eligibilityRules = this.extractEligibilityRules(html, selectors.eligibility);
@@ -150,12 +150,29 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
   }
 
   private extractBySelector(html: string, selector: string): string | null {
-    const cleanSelector = selector.replaceAll("]", "").replaceAll("[", "");
-    const escapedSelector = this.escapeRegexSpecialChars(cleanSelector);
-    const regex = new RegExp(
-      `<[^>]*class=["']?[^"']*${escapedSelector}[^"']*["']?[^>]*>([^<]*)`,
-      "i",
-    );
+    const trimmed = selector.trim();
+    let regex: RegExp;
+
+    if (trimmed.startsWith(".")) {
+      const className = this.escapeRegexSpecialChars(trimmed.slice(1));
+      regex = new RegExp(
+        `<[^>]*class=["'][^"']*\\b${className}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`,
+        "i",
+      );
+    } else if (trimmed.startsWith("#")) {
+      const idName = this.escapeRegexSpecialChars(trimmed.slice(1));
+      regex = new RegExp(`<[^>]*id=["']${idName}["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`, "i");
+    } else if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      const attribute = this.escapeRegexSpecialChars(trimmed.slice(1, -1));
+      regex = new RegExp(
+        `<[^>]*\\b${attribute}(?:=["'][^"']*["'])?[^>]*>([\\s\\S]*?)<\\/[^>]+>`,
+        "i",
+      );
+    } else {
+      const tagName = this.escapeRegexSpecialChars(trimmed);
+      regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i");
+    }
+
     const match = regex.exec(html);
     return match?.[1] ? this.stripHtml(match[1]).trim() : null;
   }
@@ -256,7 +273,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
   }
 
   private extractJurisdictionLevel(html: string, selector: string): ExtractedField {
-    const text = this.extractBySelector(html, selector) ?? "";
+    const text = this.extractBySelector(html, selector) ?? this.stripHtml(html);
     const levelMap: Record<string, string> = {
       federal: "federal",
       state: "state",
@@ -305,7 +322,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
   }
 
   private extractBenefits(html: string, selector: string, country: string): ExtractedBenefit[] {
-    const text = this.extractBySelector(html, selector) ?? "";
+    const text = this.extractBySelector(html, selector) ?? this.stripHtml(html);
     const currency = this.getCurrency(country);
     const benefitMatches = text.split(/[\n,]/).filter((b) => b.trim().length > 0);
 
@@ -338,7 +355,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
   }
 
   private extractEligibilityRules(html: string, selector: string): ExtractedEligibilityRule[] {
-    const text = this.extractBySelector(html, selector) ?? "";
+    const text = this.extractBySelector(html, selector) ?? this.stripHtml(html);
     const rules: ExtractedEligibilityRule[] = [];
 
     const ruleMatches = text.split(/[\n,]/).filter((r) => r.trim().length > 0);
@@ -372,6 +389,31 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
       value: [],
       confidence: 0,
       rawValue: undefined,
+    };
+  }
+
+  private extractJurisdiction(
+    html: string,
+    selector: string,
+    country: Country,
+  ): ExtractedField<string | null> {
+    const bySelector = this.extractField(html, selector, "jurisdiction");
+    if (bySelector.value) {
+      return bySelector;
+    }
+
+    const fallbackByCountry: Record<Country, string> = {
+      US: "United States",
+      UK: "United Kingdom",
+      AU: "Australia",
+      CA: "Canada",
+    };
+
+    return {
+      value: fallbackByCountry[country],
+      confidence: 0.6,
+      sourceSelector: "country-fallback",
+      rawValue: fallbackByCountry[country],
     };
   }
 }

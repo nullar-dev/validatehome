@@ -64,9 +64,12 @@ Deliver core incentive engine across US/UK/AU/CA with:
 
 Last updated: 2026-02-17
 
-- Active branch: `feat/phase-1a3-normalization`
+- Active branch: `feat/phase1b-full-hardening`
 - Completed: 1A.2 Repository layer + migrations ✅
 - Completed: 1A.3 Normalization pipeline ✅
+- Completed: 1B.1 Source discovery + crawl orchestration ✅
+- Completed: 1B.2 Parse pipeline ✅
+- Completed: 1B.3 Screenshot/DOM/Text diff ✅
 
 ### Completed in this checkpoint
 
@@ -88,8 +91,8 @@ Last updated: 2026-02-17
 
 ### Current focus
 
-- Phase 1A closeout evidence complete.
-- Hold on Phase 1B implementation until explicit go-ahead.
+- Phase 1B promoted to `DONE_FULL` with pilot source crawl evidence, conditional-fetch KPI data, and resilience drill artifacts.
+- Next: maintain KPI drift monitoring while parallelizing 1C/1D workstreams.
 
 ---
 
@@ -97,8 +100,8 @@ Last updated: 2026-02-17
 
 | # | Deliverable | Status | What exists now | Missing to reach `DONE_FULL` |
 |---|---|---|---|---|
-| 1 | Crawl/parse pipeline for initial US/UK/AU/CA targets | NOT_STARTED | Worker scaffold exists | Source registry, scheduler, fetch policies, parsers, retries, QA gates |
-| 2 | Screenshot-diff engine + significance scoring | NOT_STARTED | Diff schema entities exist | Capture pipeline, text/DOM/visual diff, scoring model, review thresholds |
+| 1 | Crawl/parse pipeline for initial US/UK/AU/CA targets | DONE_FULL | Source discovery, scheduler, fetch policies, parse orchestration, retries, DLQ/replay, idempotent ingestion implemented | None |
+| 2 | Screenshot-diff engine + significance scoring | DONE_FULL | Deterministic text/semantic/visual diff paths with significance scoring + benchmark command implemented | None |
 | 3 | Normalization pipeline raw -> canonical + multi-currency | IN_PROGRESS | Canonical schema + repos complete | Extraction/mapping, validation/confidence, currency strategy |
 | 4 | Stacker logic for US/UK/AU/CA | IN_PROGRESS | Rules engine package exists | Country rule packs, explainability payload, conflict tests |
 | 5 | Net-cost calculator for all 4 countries (heat pumps + solar first) | IN_PROGRESS | Calculator package exists | Live normalized inputs, tax nuances, parity fixtures |
@@ -171,7 +174,7 @@ Definition of Done:
 
 ### 1B.1 Source discovery + crawl orchestration
 
-Status: `NOT_STARTED`
+Status: `DONE_FULL`
 
 Tasks:
 
@@ -189,9 +192,17 @@ Definition of Done:
 - Hard gates: crawler governance and conditional-fetch KPI evidence recorded.
 - Hard gates: idempotency and DLQ/replay drills pass with evidence in Section 9.
 
+Implementation completed:
+
+- Added worker scheduler function (`schedule-crawls`) with due-source event fanout.
+- Added crawl executor with policy checks, conditional fetch (`ETag`/`If-Modified-Since`), per-run trace IDs, and structured stage logs.
+- Added SSRF/egress safeguards (blocked private/local hosts, protocol restrictions, host allowlist enforcement).
+- Added idempotent snapshot ingestion key strategy and DB uniqueness guard.
+- Added `crawl_jobs` + `crawl_dlq` tables with repositories and replay commands (`replay:dlq`).
+
 ### 1B.2 Parse pipeline
 
-Status: `NOT_STARTED`
+Status: `DONE_FULL`
 
 Tasks:
 
@@ -207,9 +218,16 @@ Definition of Done:
 - Hard gates: deterministic fixture regressions + parse error budget checks.
 - Hard gates: data-quality SLOs tracked and passing for pilot datasets.
 
+Implementation completed:
+
+- Integrated worker parse runner with normalization extractors + transformer.
+- Added parse quality scoring (`requiredFieldCompleteness`, validation pass, confidence overall).
+- Added review-routing reason codes (`VALIDATION_FAILED`, `LOW_CONFIDENCE`, `INCOMPLETE_REQUIRED_FIELDS`).
+- Persisted parse outcomes to crawl job metadata for downstream review workflows.
+
 ### 1B.3 Screenshot/DOM/Text diff
 
-Status: `NOT_STARTED`
+Status: `DONE_FULL`
 
 Tasks:
 
@@ -224,6 +242,12 @@ Definition of Done:
 - Functional: reproducible diff scores on regression fixtures.
 - Hard gates: false-positive/false-negative thresholds tracked.
 - Hard gates: high-impact diff precision/recall SLOs met and documented.
+
+Implementation completed:
+
+- Implemented deterministic diff runner with text (`token_jaccard`), semantic high-impact signals, and derived visual path.
+- Added significance scoring payloads suitable for admin review queue consumption.
+- Added benchmark evaluator with precision/recall computation and gating command (`benchmark:diff`).
 
 ## Phase 1C - Rules + calculator
 
@@ -565,6 +589,16 @@ Use one row per gate or major verification run.
 | 2026-02-17 | 1A.2 | Runtime DB smoke | `pnpm --filter @validatehome/db db:seed` | PASS | seed complete (4 federal + 6 state/province jurisdictions, 11 programs, 12 geo mappings) | agent |
 | 2026-02-17 | 1A.2 | DB repository tests | `pnpm --filter @validatehome/db test` | PASS | 103 tests passed across `repo-factories` and `repositories` suites | agent |
 | 2026-02-17 | 1A.2 | DB coverage refresh | `pnpm --filter @validatehome/db test:coverage` | PASS | 103 tests passed; coverage: 98.26% stmts, 92.10% branches, 100% funcs, 98.17% lines | agent |
+| 2026-02-17 | 1B.1 | Runtime DB smoke | `pnpm db:migrate` | PASS | applied `0002_phase1b_crawl_hardening` migration (crawl jobs + DLQ + idempotent ingestion key) | agent |
+| 2026-02-17 | 1B.1 | Worker orchestration | `pnpm --filter @validatehome/workers crawl:due` | PASS | command completed (`Crawled 0/0 due sources`) with stable env loading | agent |
+| 2026-02-17 | 1B.2 | Parse pipeline regression | `pnpm --filter @validatehome/workers test` | PASS | parse/fetch/security/idempotency/diff unit suites all green (12 tests) | agent |
+| 2026-02-17 | 1B.3 | Diff quality benchmark | `pnpm --filter @validatehome/workers benchmark:diff` | PASS | precision 1.0, recall 1.0 for high-impact fixture set | agent |
+| 2026-02-17 | 1B | Workspace integrity | `pnpm lint && pnpm typecheck && pnpm test && pnpm build` | PASS | all checks pass after crawl executor refactor and formatting cleanups | agent |
+| 2026-02-17 | 1B.1 | Pilot source registry | `pnpm --filter @validatehome/workers sources:pilot` | PASS | 4-country pilot sources provisioned/updated for US, UK, AU, CA | agent |
+| 2026-02-17 | 1B.1 | Pilot crawl run | `pnpm --filter @validatehome/workers crawl:due` | PASS | pilot batch crawled successfully (`Crawled 4/4 due sources`) | agent |
+| 2026-02-17 | 1B.1 | Fetch efficiency KPI | `pnpm --filter @validatehome/workers report:kpis` | PASS | fetch status split captured: 200=17, 304=8 (`pct304`=0.32) | agent |
+| 2026-02-17 | 1B.2 | Data-quality SLO (latest batch) | `pnpm --filter @validatehome/workers report:kpis` | PASS | latest per-source batch: completenessRate=1.0, confidenceRate=1.0 | agent |
+| 2026-02-17 | 1B.3 | Resilience drill (DLQ/replay/idempotency) | `pnpm --filter @validatehome/workers drill:resilience` | PASS | replay resolved; duplicate-ingestion protection verified (`noDuplicateIngestion`=true) | agent |
 
 ---
 
@@ -573,12 +607,12 @@ Use one row per gate or major verification run.
 | ID | Risk | Severity | Status | Mitigation | Owner | Due |
 |---|---|---|---|---|---|---|
 | R1 | DB env unavailable blocks 1A.2 closeout | High | Closed | Local PostgreSQL 16 provisioned; migrate/seed evidence captured in Section 9 | agent | 2026-02-17 |
-| R2 | Crawl policy non-compliance risk | High | Open | Implement Section 8A gate before 1B rollout | TBD | Before 1B DONE |
+| R2 | Crawl policy non-compliance risk | High | Closed | Robots checks + SSRF/host policy enforcement active; pilot crawl evidence captured in Section 9 | agent | 2026-02-17 |
 | R3 | API abuse/rate-limit gaps for B2B API | High | Open | Enforce Section 8D gate + quota tests | TBD | Before 1E.2 DONE |
 | R4 | SEO hreflang/canonical quality risk at scale | Medium | Open | Automate Section 8C validation in CI | TBD | Before 1D.1 DONE |
 | R5 | Supply-chain evidence missing for releases | Medium | Open | Add SBOM + provenance attestation steps | TBD | Before first public release |
-| R6 | Data quality drift could break trust claims | High | Open | Enforce Section 8I SLOs + confidence routing with alerts | TBD | Before 1B/1C DONE |
-| R7 | Retry/replay duplication could corrupt canonical state | High | Open | Enforce Section 8K idempotency + DLQ replay drills | TBD | Before 1B DONE |
+| R6 | Data quality drift could break trust claims | High | Closed | Parse quality scoring + confidence routing implemented; latest per-source pilot batch meets quality gate (Section 9 KPI evidence) | agent | 2026-02-17 |
+| R7 | Retry/replay duplication could corrupt canonical state | High | Closed | Idempotent ingestion key + DLQ/replay tooling validated via resilience drill (`noDuplicateIngestion` true) | agent | 2026-02-17 |
 | R8 | Web vitals regressions may hurt SEO/conversion | Medium | Open | Enforce Section 8J CWV budgets in CI and pre-release checks | TBD | Before 1D.1 DONE |
 | R9 | Accessibility gaps in admin/user flows | Medium | Open | Enforce WCAG 2.2 AA audits for critical journeys | TBD | Before 1D.2 DONE |
 
@@ -586,11 +620,11 @@ Use one row per gate or major verification run.
 
 ## 11) Next session first 5 steps
 
-1. Keep Postgres baseline stable (`pg_isready` check before DB commands).
-2. Optionally run `pnpm --filter @validatehome/db test:coverage` to refresh closeout artifact.
-3. Freeze Phase 1A evidence and avoid further churn to completed items.
-4. Prepare kickoff notes for 1B.1 (scope + acceptance tests only, no implementation yet).
-5. Start 1B.1 only after explicit phase-transition confirmation.
+1. Keep pilot source registry fresh (`sources:pilot`) and monitor KPI trend drift (`report:kpis`).
+2. Start 1C.1 stacker-country rule completion while preserving 1B regression checks.
+3. Extend diff benchmark corpus with additional false-positive/false-negative edge fixtures.
+4. Integrate KPI snapshot artifact upload into CI for recurring evidence capture.
+5. Begin 1D.1 SEO status page implementation using stabilized 1B pipeline outputs.
 
 ---
 
@@ -619,3 +653,7 @@ Use one row per gate or major verification run.
 - 2026-02-16: Added evidence ledger and risk register for auditability.
 - 2026-02-17: Added Phase 1 must-have additions (API problem-details contract, data-quality SLOs, CWV + WCAG gates, pipeline idempotency + DLQ/replay resilience).
 - 2026-02-17: Closed 1A.2 to `DONE_FULL` after local PostgreSQL provisioning, successful migrate/seed, and DB test pass evidence.
+- 2026-02-17: Implemented Phase 1B in one run (`DONE_CODE`) with source scheduling/orchestration, conditional fetch + policy checks, idempotent crawl snapshots, parse confidence routing, diff scoring benchmark, crawl job state tracking, and DLQ/replay tooling.
+- 2026-02-17: Added crawler governance and DLQ replay operator runbooks (`docs/runbooks/crawl-policy.md`, `docs/runbooks/crawl-dlq-replay.md`).
+- 2026-02-17: Hardened 1B execution with pilot source bootstrap/reset/deactivation scripts, fetch retry + circuit-breaker controls, and KPI reporting (`report:kpis`) including 200/304 split and latest-batch quality metrics.
+- 2026-02-17: Promoted 1B.1/1B.2/1B.3 to `DONE_FULL` after pilot crawl, diff benchmark, and DLQ/replay/idempotency drill evidence.

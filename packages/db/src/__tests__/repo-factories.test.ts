@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { apiKeyRepo } from "../repositories/api-key.repo.js";
 import { benefitRepo } from "../repositories/benefit.repo.js";
+import { crawlDlqRepo } from "../repositories/crawl-dlq.repo.js";
+import { crawlJobRepo } from "../repositories/crawl-job.repo.js";
 import { crawlSnapshotRepo } from "../repositories/crawl-snapshot.repo.js";
 import { diffRepo } from "../repositories/diff.repo.js";
 import { geoMappingRepo } from "../repositories/geo-mapping.repo.js";
@@ -27,6 +29,7 @@ function attachProxyMethods(proxy: Promise<unknown[]> & Record<string, unknown>)
     "set",
     "values",
     "returning",
+    "onConflictDoNothing",
     "$dynamic",
   ];
   for (const method of methods) {
@@ -522,9 +525,12 @@ describe("sourceRepo", () => {
     expect(typeof repo.findActive).toBe("function");
     expect(typeof repo.findDueForCrawl).toBe("function");
     expect(typeof repo.findById).toBe("function");
+    expect(typeof repo.findByUrl).toBe("function");
     expect(typeof repo.create).toBe("function");
+    expect(typeof repo.update).toBe("function");
     expect(typeof repo.markCrawled).toBe("function");
     expect(typeof repo.deactivate).toBe("function");
+    expect(typeof repo.touch).toBe("function");
   });
 
   it("findAll returns rows", async () => {
@@ -566,6 +572,14 @@ describe("sourceRepo", () => {
     expect(result).toBeUndefined();
   });
 
+  it("findByUrl returns first row", async () => {
+    const mockRow = { id: "s-1", url: "https://example.com" };
+    const db = createMockDb([mockRow]);
+    const repo = sourceRepo(db);
+    const result = await repo.findByUrl("https://example.com");
+    expect(result).toEqual(mockRow);
+  });
+
   it("create returns inserted row", async () => {
     const newRow = { id: "s-1", url: "https://example.com" };
     const db = createMockDb([newRow]);
@@ -580,6 +594,22 @@ describe("sourceRepo", () => {
     await expect(
       repo.create({ url: "https://example.com", jurisdictionId: "j-1" }),
     ).rejects.toThrow("Failed to create source");
+  });
+
+  it("update returns updated row", async () => {
+    const updated = { id: "s-1", url: "https://example.gov" };
+    const db = createMockDb([updated]);
+    const repo = sourceRepo(db);
+    const result = await repo.update("s-1", { url: "https://example.gov" });
+    expect(result).toEqual(updated);
+  });
+
+  it("update throws when source missing", async () => {
+    const db = createMockDb([]);
+    const repo = sourceRepo(db);
+    await expect(repo.update("missing", { isActive: false })).rejects.toThrow(
+      "Source not found: missing",
+    );
   });
 
   it("markCrawled returns updated row", async () => {
@@ -617,6 +647,20 @@ describe("sourceRepo", () => {
     const repo = sourceRepo(db);
     await expect(repo.deactivate("missing")).rejects.toThrow("Source not found: missing");
   });
+
+  it("touch returns updated row", async () => {
+    const updated = { id: "s-1" };
+    const db = createMockDb([updated]);
+    const repo = sourceRepo(db);
+    const result = await repo.touch("s-1");
+    expect(result).toEqual(updated);
+  });
+
+  it("touch throws when source missing", async () => {
+    const db = createMockDb([]);
+    const repo = sourceRepo(db);
+    await expect(repo.touch("missing")).rejects.toThrow("Source not found: missing");
+  });
 });
 
 describe("crawlSnapshotRepo", () => {
@@ -627,6 +671,8 @@ describe("crawlSnapshotRepo", () => {
     expect(typeof repo.findLatestBySource).toBe("function");
     expect(typeof repo.findById).toBe("function");
     expect(typeof repo.findBySource).toBe("function");
+    expect(typeof repo.createIdempotent).toBe("function");
+    expect(typeof repo.findBySourceAndHash).toBe("function");
   });
 
   it("create returns inserted row", async () => {
@@ -651,6 +697,22 @@ describe("crawlSnapshotRepo", () => {
         contentHash: "sha256-abc123",
       }),
     ).rejects.toThrow("Failed to create crawl snapshot");
+  });
+
+  it("createIdempotent returns inserted row", async () => {
+    const inserted = { id: "cs-1", ingestionKey: "k1" };
+    const db = createMockDb([inserted]);
+    const repo = crawlSnapshotRepo(db);
+    const result = await repo.createIdempotent({ sourceId: "s-1", ingestionKey: "k1" });
+    expect(result).toEqual(inserted);
+  });
+
+  it("findBySourceAndHash returns row or undefined", async () => {
+    const row = { id: "cs-1" };
+    const db = createMockDb([row]);
+    const repo = crawlSnapshotRepo(db);
+    const result = await repo.findBySourceAndHash("s-1", "hash");
+    expect(result).toEqual(row);
   });
 
   it("findLatestBySource returns first row", async () => {
@@ -681,6 +743,68 @@ describe("crawlSnapshotRepo", () => {
     const repo = crawlSnapshotRepo(db);
     const result = await repo.findBySource("s-1");
     expect(result).toEqual(rows);
+  });
+});
+
+describe("crawlJobRepo", () => {
+  it("returns expected method interface", () => {
+    const db = createMockDb();
+    const repo = crawlJobRepo(db);
+    expect(typeof repo.create).toBe("function");
+    expect(typeof repo.findById).toBe("function");
+    expect(typeof repo.findUnresolvedFailed).toBe("function");
+    expect(typeof repo.markRunning).toBe("function");
+    expect(typeof repo.markSucceeded).toBe("function");
+    expect(typeof repo.markFailed).toBe("function");
+    expect(typeof repo.markPolicyBlocked).toBe("function");
+  });
+
+  it("create returns inserted row", async () => {
+    const row = { id: "j-1" };
+    const db = createMockDb([row]);
+    const repo = crawlJobRepo(db);
+    await expect(repo.create({ sourceId: "s-1" })).resolves.toEqual(row);
+  });
+
+  it("markFailed throws when missing", async () => {
+    const db = createMockDb([]);
+    const repo = crawlJobRepo(db);
+    await expect(repo.markFailed("missing", "transient", "error")).rejects.toThrow(
+      "Crawl job not found: missing",
+    );
+  });
+});
+
+describe("crawlDlqRepo", () => {
+  it("returns expected method interface", () => {
+    const db = createMockDb();
+    const repo = crawlDlqRepo(db);
+    expect(typeof repo.create).toBe("function");
+    expect(typeof repo.findById).toBe("function");
+    expect(typeof repo.findUnresolved).toBe("function");
+    expect(typeof repo.findUnresolvedBySource).toBe("function");
+    expect(typeof repo.markReplayed).toBe("function");
+    expect(typeof repo.resolve).toBe("function");
+  });
+
+  it("create returns inserted row", async () => {
+    const row = { id: "d-1" };
+    const db = createMockDb([row]);
+    const repo = crawlDlqRepo(db);
+    await expect(
+      repo.create({
+        sourceId: "s-1",
+        reason: "Fetch failed",
+        errorClass: "transient",
+        payload: { sourceId: "s-1" },
+      }),
+    ).resolves.toEqual(row);
+  });
+
+  it("resolve throws when missing", async () => {
+    const db = createMockDb([]);
+    const repo = crawlDlqRepo(db);
+    await expect(repo.resolve("missing")).rejects.toThrow("DLQ entry not found: missing");
   });
 });
 

@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { serve } from "inngest/hono";
 import { crawlSource } from "./functions/crawl-source.js";
+import { scheduleCrawls } from "./functions/schedule-crawls.js";
 import { inngest } from "./inngest.js";
 
-export const functions = [crawlSource];
+export const functions = [scheduleCrawls, crawlSource];
 
 // The worker server exposes the Inngest endpoint
 const app = new Hono();
