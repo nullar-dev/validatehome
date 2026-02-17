@@ -83,6 +83,21 @@ describe("validateCrawlUrl", () => {
     );
   });
 
+  it("allows public ipv4-mapped ipv6 host", () => {
+    const mappedPublicIpv6 = "::ffff:c633:6401";
+    const mappedPublicIpv6Url = `https://[${mappedPublicIpv6}]/a`;
+    const mappedPublicIpv6Host = new URL(mappedPublicIpv6Url).hostname;
+
+    expect(() => validateCrawlUrl(mappedPublicIpv6Url, mappedPublicIpv6Host)).not.toThrow();
+  });
+
+  it("allows invalid ipv4-mapped ipv6 forms when host matches", () => {
+    const weirdMappedUrl = "https://[::ffff:abcd]/a";
+    const weirdMappedHost = new URL(weirdMappedUrl).hostname;
+
+    expect(() => validateCrawlUrl(weirdMappedUrl, weirdMappedHost)).not.toThrow();
+  });
+
   it("allows public host", () => {
     expect(() => validateCrawlUrl("https://public.example/path", "public.example")).not.toThrow();
   });
