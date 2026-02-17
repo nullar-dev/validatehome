@@ -27,8 +27,8 @@ const DEFAULT_CONFIG: DeduplicationConfig = {
   enabled: true,
 };
 
-function isValidProgram(program: CanonicalProgram | undefined): program is CanonicalProgram {
-  return program !== undefined;
+function isValidProgram(program: CanonicalProgram | undefined | null): program is CanonicalProgram {
+  return program != null;
 }
 
 function getProgramId(program: CanonicalProgram, index: number): string {
@@ -149,9 +149,17 @@ export class DeduplicationEngine {
       const otherId = getProgramId(other, j);
       if (processedIds.has(otherId)) continue;
 
-      const similarity = calculateSimilarity(current.name, other.name, current.slug, other.slug);
+      const nameSimilarity = calculateSimilarity(current.name, other.name);
+      const urlSimilarity =
+        current.slug && other.slug ? calculateSimilarity(current.slug, other.slug) : 0;
+      const exactMatch = calculateSimilarity(current.name, other.name, current.slug, other.slug);
 
-      if (similarity >= this.config.exactMatchThreshold) {
+      const isDuplicate =
+        exactMatch >= this.config.exactMatchThreshold ||
+        (nameSimilarity >= this.config.nameSimilarityThreshold &&
+          urlSimilarity >= this.config.urlSimilarityThreshold);
+
+      if (isDuplicate) {
         duplicates.push(other);
         processedIds.add(otherId);
       }
@@ -176,7 +184,6 @@ export class DeduplicationEngine {
 
     if (a.slug && b.slug && a.slug === b.slug) {
       reasons.push("Slug match");
-      score = (score + 1.0) / 2;
     }
 
     if (a.canonicalSourceUrl && b.canonicalSourceUrl) {
@@ -212,36 +219,28 @@ export class DeduplicationEngine {
 
   private extractDomain(urlString: string): string {
     if (!urlString || typeof urlString !== "string") return "";
-    try {
-      let cleanUrl = urlString;
-      if (!cleanUrl.includes("://")) {
-        cleanUrl = "https://" + cleanUrl;
-      }
-      const pathIndex = cleanUrl.indexOf("?", 8);
-      const endIndex = pathIndex === -1 ? cleanUrl.length : pathIndex;
-      const hostPart = cleanUrl.substring(8, endIndex);
-      return hostPart;
-    } catch {
-      return "";
+    let cleanUrl = urlString;
+    if (!cleanUrl.includes("://")) {
+      cleanUrl = `https://${cleanUrl}`;
     }
+    const pathIndex = cleanUrl.indexOf("?", 8);
+    const endIndex = pathIndex === -1 ? cleanUrl.length : pathIndex;
+    const hostPart = cleanUrl.substring(8, endIndex);
+    return hostPart;
   }
 
   private extractPath(urlString: string): string {
     if (!urlString || typeof urlString !== "string") return "";
-    try {
-      let cleanUrl = urlString;
-      if (!cleanUrl.includes("://")) {
-        cleanUrl = "https://" + cleanUrl;
-      }
-      const slashIndex = cleanUrl.indexOf("/", 8);
-      const questionIndex = cleanUrl.indexOf("?");
-      if (slashIndex === -1) return "/";
-      const start = slashIndex;
-      const end = questionIndex === -1 ? cleanUrl.length : questionIndex;
-      return cleanUrl.substring(start, end);
-    } catch {
-      return "";
+    let cleanUrl = urlString;
+    if (!cleanUrl.includes("://")) {
+      cleanUrl = `https://${cleanUrl}`;
     }
+    const slashIndex = cleanUrl.indexOf("/", 8);
+    const questionIndex = cleanUrl.indexOf("?");
+    if (slashIndex === -1) return "/";
+    const start = slashIndex;
+    const end = questionIndex === -1 ? cleanUrl.length : questionIndex;
+    return cleanUrl.substring(start, end);
   }
 
   findSimilar(

@@ -110,7 +110,8 @@ export class Transformer {
     for (const field of fieldList) {
       if (field) {
         const score = field.confidence;
-        fieldScores[field.sourceSelector ?? "unknown"] = score;
+        const key = field.sourceSelector ?? "unknown";
+        fieldScores[key] = (fieldScores[key] ?? 0) + score;
         totalScore += score;
         fieldCount++;
       }
@@ -154,18 +155,10 @@ export class Transformer {
   ): CanonicalProgram {
     const name = raw.name.value ?? "Unknown Program";
     const slug = slugify(name);
-
-    const budgetTotal = raw.budgetTotal.value
-      ? parseFloat(raw.budgetTotal.value.replaceAll(",", ""))
-      : null;
-    const budgetRemaining = raw.budgetRemaining.value
-      ? parseFloat(raw.budgetRemaining.value.replaceAll(",", ""))
-      : null;
-
-    let budgetPctUsed: number | null = null;
-    if (budgetTotal && budgetRemaining !== null) {
-      budgetPctUsed = Math.round(((budgetTotal - budgetRemaining) / budgetTotal) * 100);
-    }
+    const budgetPctUsed = this.calculateBudgetPctUsed(
+      raw.budgetTotal.value,
+      raw.budgetRemaining.value,
+    );
 
     return {
       jurisdictionId: raw.jurisdictionName.value ?? "unknown",
@@ -177,11 +170,9 @@ export class Transformer {
       budgetTotal: raw.budgetTotal.value,
       budgetRemaining: raw.budgetRemaining.value,
       budgetPctUsed,
-      startDate: raw.startDate.value ? this.parseDate(raw.startDate.value) : null,
-      endDate: raw.endDate.value ? this.parseDate(raw.endDate.value) : null,
-      applicationDeadline: raw.applicationDeadline.value
-        ? this.parseDate(raw.applicationDeadline.value)
-        : null,
+      startDate: this.parseDateOrNull(raw.startDate.value),
+      endDate: this.parseDateOrNull(raw.endDate.value),
+      applicationDeadline: this.parseDateOrNull(raw.applicationDeadline.value),
       lastVerifiedAt: provenance.normalizedAt,
       canonicalSourceUrl: provenance.sourceUrl,
       metadata: {
@@ -191,6 +182,29 @@ export class Transformer {
       confidence,
       provenance,
     };
+  }
+
+  private calculateBudgetPctUsed(
+    budgetTotal: string | null,
+    budgetRemaining: string | null,
+  ): number | null {
+    const parseAmount = (value: string | null): number | null => {
+      if (!value) return null;
+      const cleaned = value.replaceAll(",", "").trim();
+      const parsed = parseFloat(cleaned);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const total = parseAmount(budgetTotal);
+    const remaining = parseAmount(budgetRemaining);
+
+    if (total === null || remaining === null) return null;
+    if (total === 0) return remaining === 0 ? 0 : 100;
+    return Math.round(((total - remaining) / total) * 100);
+  }
+
+  private parseDateOrNull(value: string | null): Date | null {
+    return value ? this.parseDate(value) : null;
   }
 
   private transformBenefit(

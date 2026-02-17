@@ -1,5 +1,6 @@
 import type {
   BenefitType,
+  Country,
   Currency,
   EligibilityRuleType,
   ProgramStatus,
@@ -12,12 +13,16 @@ import type {
   RawProgramData,
   RawSource,
 } from "../types/extraction.js";
-import { BaseExtractor, EXTRACTOR_VERSION, type Extractor } from "./base.js";
+import { BaseExtractor, EXTRACTOR_VERSION, type Extractor, type ExtractorConfig } from "./base.js";
 
-export class PdfExtractor extends BaseExtractor implements Extractor {
-  readonly config = {
+interface PdfExtractorConfig extends ExtractorConfig {
+  readonly encoding: "utf-8" | "ascii" | "utf-16";
+}
+
+export class PdfExtractor extends BaseExtractor implements Extractor<RawProgramData> {
+  readonly config: PdfExtractorConfig = {
     sourceType: "pdf" as const,
-    country: "US",
+    country: "US" as Country,
     encoding: "utf-8" as const,
   };
 
@@ -125,7 +130,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor {
       }
     }
 
-    return textLines.join(" ").replace(/\\s+/g, " ").trim();
+    return textLines.join(" ").replace(/\s+/g, " ").trim();
   }
 
   private extractProgramName(text: string): ExtractedField<string | null> {
@@ -179,7 +184,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor {
     } else if (lower.includes("reserved") || lower.includes("allocated")) {
       status = "reserved";
       confidence = 0.7;
-    } else if (lower.includes("funded") || lower.includes("available")) {
+    } else if (lower.includes("funded")) {
       status = "funded";
       confidence = 0.7;
     } else if (
@@ -295,6 +300,11 @@ export class PdfExtractor extends BaseExtractor implements Extractor {
     const stateKeywords = ["state", "province", "territory", "department of"];
     const localKeywords = ["county", "city", "municipal", "local", "utility"];
 
+    const stateRegex = new RegExp(
+      `(${stateKeywords.join("|")})\\s+([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)?)`,
+      "gi",
+    );
+
     const lower = text.toLowerCase();
 
     let name: ExtractedField<string | null> = { value: null, confidence: 0 };
@@ -309,12 +319,12 @@ export class PdfExtractor extends BaseExtractor implements Extractor {
     }
 
     if (!name.value) {
-      for (const kw of stateKeywords) {
-        const match = lower.match(new RegExp(`(${kw})\\s+([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)?)`, "i"));
-        if (match?.[2]) {
-          name = { value: match[2], confidence: 0.7 };
+      const match = lower.match(stateRegex);
+      if (match?.[0]) {
+        const parts = match[0].split(/\s+/);
+        if (parts.length >= 2) {
+          name = { value: parts.slice(1).join(" "), confidence: 0.7 };
           level = { value: "state", confidence: 0.7 };
-          break;
         }
       }
     }

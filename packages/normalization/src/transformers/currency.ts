@@ -79,7 +79,7 @@ export class CurrencyConverter {
   }
 
   getAuditLog(): readonly CurrencyConversionAuditEntry[] {
-    return this.auditLog;
+    return [...this.auditLog];
   }
 
   clearAuditLog(): void {
@@ -112,6 +112,9 @@ export class CurrencyConverter {
 
     const rate = this.getRate(fromCurrency, toCurrency, date);
     const numericAmount = parseFloat(amount);
+    if (!Number.isFinite(numericAmount)) {
+      throw new Error(`Invalid amount: ${amount}`);
+    }
     const convertedAmount = (numericAmount * rate).toFixed(2);
 
     const auditEntry: CurrencyConversionAuditEntry = {
@@ -186,7 +189,7 @@ export class CurrencyConverter {
   }
 
   getAvailableCurrencies(): readonly Currency[] {
-    return ["USD", "GBP", "AUD", "CAD"] as const;
+    return Object.keys(STATIC_RATES) as readonly Currency[];
   }
 
   getStaticRate(fromCurrency: Currency, toCurrency: Currency): number {

@@ -1,3 +1,4 @@
+import type { Country } from "@validatehome/shared";
 import type {
   ConfidenceScore,
   ExtractedField,
@@ -11,7 +12,7 @@ export const EXTRACTOR_VERSION = "1.0.0";
 
 export interface ExtractorConfig {
   readonly sourceType: "webpage" | "pdf" | "api_endpoint";
-  readonly country: string;
+  readonly country: Country;
   readonly selectors?: Record<string, string>;
 }
 
@@ -95,7 +96,7 @@ export abstract class BaseExtractor implements Extractor {
     errors?: readonly string[],
   ): ExtractedField {
     return {
-      value: value ?? "",
+      value,
       confidence,
       sourceSelector,
       rawValue: rawValue ?? undefined,

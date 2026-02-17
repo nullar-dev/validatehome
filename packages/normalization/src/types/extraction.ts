@@ -39,8 +39,8 @@ export interface RawProgramData {
   readonly applicationDeadline: ExtractedField<string | null>;
   readonly jurisdictionName: ExtractedField<string | null>;
   readonly jurisdictionLevel: ExtractedField<string | null>;
-  readonly benefits: ExtractedBenefit[];
-  readonly eligibilityRules: ExtractedEligibilityRule[];
+  readonly benefits: readonly ExtractedBenefit[];
+  readonly eligibilityRules: readonly ExtractedEligibilityRule[];
   readonly categories: ExtractedField<string[] | null>;
 }
 

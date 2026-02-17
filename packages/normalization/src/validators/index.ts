@@ -37,8 +37,12 @@ function validateNumericField(
   }
 }
 
-export function validateProgram(program: CanonicalProgram): ValidationResult {
+export function validateProgram(
+  program: CanonicalProgram,
+  options?: { referenceDate?: Date },
+): ValidationResult {
   const issues: ValidationIssue[] = [];
+  const referenceDate = options?.referenceDate ?? new Date();
 
   validateRequiredField(program.name, "name", issues, "MISSING_NAME");
   validateRequiredField(program.slug, "slug", issues, "MISSING_SLUG");
@@ -55,7 +59,7 @@ export function validateProgram(program: CanonicalProgram): ValidationResult {
     });
   }
 
-  if (program.applicationDeadline && program.applicationDeadline < new Date()) {
+  if (program.applicationDeadline && program.applicationDeadline < referenceDate) {
     issues.push({
       field: "applicationDeadline",
       severity: "warning",
@@ -75,7 +79,7 @@ export function validateProgram(program: CanonicalProgram): ValidationResult {
 
   const canAutoFix = issues
     .filter((i) => i.severity === "error")
-    .every((i) => ["MISSING_NAME", "MISSING_SLUG"].includes(i.code));
+    .every((i) => ["MISSING_NAME", "MISSING_SLUG", "MISSING_JURISDICTION"].includes(i.code));
 
   return {
     isValid: issues.filter((i) => i.severity === "error").length === 0,

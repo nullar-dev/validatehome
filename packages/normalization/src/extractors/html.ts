@@ -1,5 +1,6 @@
 import type {
   BenefitType,
+  Country,
   Currency,
   EligibilityRuleType,
   ProgramStatus,
@@ -12,9 +13,9 @@ import type {
   RawProgramData,
   RawSource,
 } from "../types/extraction.js";
-import { BaseExtractor, EXTRACTOR_VERSION, type Extractor } from "./base.js";
+import { BaseExtractor, EXTRACTOR_VERSION, type Extractor, type ExtractorConfig } from "./base.js";
 
-interface HtmlExtractorConfig {
+interface HtmlExtractorConfig extends ExtractorConfig {
   readonly selectors: {
     readonly name: string;
     readonly description: string;
@@ -28,10 +29,10 @@ interface HtmlExtractorConfig {
   };
 }
 
-export class HtmlExtractor extends BaseExtractor implements Extractor {
-  readonly config = {
+export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgramData> {
+  readonly config: HtmlExtractorConfig = {
     sourceType: "webpage" as const,
-    country: "US",
+    country: "US" as Country,
     selectors: {
       name: "[data-program-name], h1, .program-title",
       description: "[data-program-description], .program-description, .description",
@@ -58,7 +59,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
 
     try {
       const html = source.rawContent;
-      const selectors = (this.config as unknown as HtmlExtractorConfig).selectors;
+      const selectors = this.config.selectors;
 
       const name = this.extractField(html, selectors.name, "program name");
       if (!name.value) {
@@ -150,8 +151,9 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
 
   private extractBySelector(html: string, selector: string): string | null {
     const cleanSelector = selector.replaceAll("]", "").replaceAll("[", "");
+    const escapedSelector = cleanSelector.replace(/[*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(
-      `<[^>]*class=["']?[^"']*${cleanSelector}[^"']*["']?[^>]*>([^<]*)`,
+      `<[^>]*class=["']?[^"']*${escapedSelector}[^"']*["']?[^>]*>([^<]*)`,
       "i",
     );
     const match = html.match(regex);
@@ -159,7 +161,11 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
   }
 
   private stripHtml(html: string): string {
-    return html.replaceAll("<[^>]*>", "").replaceAll("&nbsp;", " ").replaceAll("&amp;", "&").trim();
+    return html
+      .replace(/<[^>]*>/g, "")
+      .replaceAll("&nbsp;", " ")
+      .replaceAll("&amp;", "&")
+      .trim();
   }
 
   private extractStatus(html: string, selector: string): ExtractedField<ProgramStatus> {
@@ -314,7 +320,8 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
 
   private inferBenefitType(text: string): BenefitType {
     const lower = text.toLowerCase();
-    if (lower.includes("tax credit") || lower.includes("tax")) return "tax_credit";
+    const taxCreditRegex = /\btax[-\s]?credit(s)?\b/i;
+    if (taxCreditRegex.test(lower) || lower.includes("tax credit")) return "tax_credit";
     if (lower.includes("rebate")) return "rebate";
     if (lower.includes("grant")) return "grant";
     if (lower.includes("loan")) return "loan";
