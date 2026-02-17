@@ -72,8 +72,11 @@ function getMatchReasons(
 }
 
 function calculateSimilarity(name1: string, name2: string, slug1?: string, slug2?: string): number {
-  const words1 = name1.toLowerCase().split(/\s+/);
-  const words2 = name2.toLowerCase().split(/\s+/);
+  if (!name1 || !name2) return 0;
+  const safeName1 = name1.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const safeName2 = name2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const words1 = safeName1.toLowerCase().split(/\s+/);
+  const words2 = safeName2.toLowerCase().split(/\s+/);
 
   const set1 = new Set(words1);
   const set2 = new Set(words2);
@@ -210,6 +213,7 @@ export class DeduplicationEngine {
   }
 
   private extractDomain(urlString: string): string {
+    if (!urlString || typeof urlString !== "string") return "";
     try {
       const match = urlString.match(/^(?:https?:\/\/)?([^/]+)/);
       return match?.[1] ? match[1] : "";
@@ -219,6 +223,7 @@ export class DeduplicationEngine {
   }
 
   private extractPath(urlString: string): string {
+    if (!urlString || typeof urlString !== "string") return "";
     try {
       const match = urlString.match(/^(?:https?:\/\/[^/]+)([^?]*)/);
       return match?.[1] ? match[1] : "";
