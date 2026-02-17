@@ -151,13 +151,30 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
 
   private extractBySelector(html: string, selector: string): string | null {
     const cleanSelector = selector.replaceAll("]", "").replaceAll("[", "");
-    const escapedSelector = cleanSelector.replaceAll(/[*+?^${}()|[\]\\]/g, "\\$&");
+    const escapedSelector = this.escapeRegexSpecialChars(cleanSelector);
     const regex = new RegExp(
       `<[^>]*class=["']?[^"']*${escapedSelector}[^"']*["']?[^>]*>([^<]*)`,
       "i",
     );
     const match = regex.exec(html);
     return match?.[1] ? this.stripHtml(match[1]).trim() : null;
+  }
+
+  private escapeRegexSpecialChars(str: string): string {
+    return str
+      .replaceAll("\\", "\\\\")
+      .replaceAll("*", "\\*")
+      .replaceAll("+", "\\+")
+      .replaceAll("?", "\\?")
+      .replaceAll("^", "\\^")
+      .replaceAll("$", "\\$")
+      .replaceAll("{", "\\{")
+      .replaceAll("}", "\\}")
+      .replaceAll("(", "\\(")
+      .replaceAll(")", "\\)")
+      .replaceAll("|", "\\|")
+      .replaceAll("[", "\\[")
+      .replaceAll("]", "\\]");
   }
 
   private stripHtml(html: string): string {
