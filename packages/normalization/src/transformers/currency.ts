@@ -64,9 +64,9 @@ const HISTORICAL_RATES: HistoricalRate[] = [
 ];
 
 export class CurrencyConverter {
-  private useStaticRates: boolean;
-  private customRates: Map<string, number> = new Map();
-  private auditLog: CurrencyConversionAuditEntry[] = [];
+  private readonly useStaticRates: boolean;
+  private readonly customRates: Map<string, number> = new Map();
+  private readonly auditLog: CurrencyConversionAuditEntry[] = [];
 
   constructor(options: { useStaticRates?: boolean } = {}) {
     this.useStaticRates = options.useStaticRates ?? true;
@@ -83,7 +83,7 @@ export class CurrencyConverter {
   }
 
   clearAuditLog(): void {
-    this.auditLog = [];
+    this.auditLog.length = 0;
   }
 
   convert(

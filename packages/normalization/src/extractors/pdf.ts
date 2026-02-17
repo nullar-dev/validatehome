@@ -382,7 +382,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor {
       const percentMatch = percentPattern.exec(line);
       if (percentMatch?.[1]) {
         percentage = {
-          value: parseInt(percentMatch[1], 10),
+          value: Number.parseInt(percentMatch[1], 10),
           confidence: 0.8,
           rawValue: percentMatch[0],
         };

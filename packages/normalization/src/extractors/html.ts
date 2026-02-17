@@ -218,8 +218,11 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
     deadline: ExtractedField<string | null>;
   } {
     const text = this.extractBySelector(html, selector) ?? "";
-    const dateRegex = /(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})|(\w+\s+\d{1,2},?\s+\d{4})/g;
-    const matches = text.match(dateRegex) ?? [];
+    const datePattern1 = /\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/g;
+    const datePattern2 = /\w+\s+\d{1,2},?\s+\d{4}/g;
+    const matches1 = text.match(datePattern1) ?? [];
+    const matches2 = text.match(datePattern2) ?? [];
+    const matches = [...matches1, ...matches2];
 
     return {
       start: {
@@ -290,7 +293,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
   private extractBenefits(html: string, selector: string, country: string): ExtractedBenefit[] {
     const text = this.extractBySelector(html, selector) ?? "";
     const currency = this.getCurrency(country);
-    const benefitMatches = text.split(/\n|,/).filter((b) => b.trim().length > 0);
+    const benefitMatches = text.split(/[\n,]/).filter((b) => b.trim().length > 0);
 
     return benefitMatches.map((match) => {
       const amount = this.parseBenefitAmount(match);
@@ -323,7 +326,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
     const text = this.extractBySelector(html, selector) ?? "";
     const rules: ExtractedEligibilityRule[] = [];
 
-    const ruleMatches = text.split(/\n|,/).filter((r) => r.trim().length > 0);
+    const ruleMatches = text.split(/[\n,]/).filter((r) => r.trim().length > 0);
 
     for (const match of ruleMatches) {
       const ruleType = this.inferEligibilityType(match);

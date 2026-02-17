@@ -91,7 +91,7 @@ function calculateSimilarity(name1: string, name2: string, slug1?: string, slug2
 }
 
 export class DeduplicationEngine {
-  private config: DeduplicationConfig;
+  private readonly config: DeduplicationConfig;
 
   constructor(config: Partial<DeduplicationConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
