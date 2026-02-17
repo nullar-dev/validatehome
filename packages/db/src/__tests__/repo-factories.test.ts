@@ -707,12 +707,69 @@ describe("crawlSnapshotRepo", () => {
     expect(result).toEqual(inserted);
   });
 
+  it("createIdempotent falls back to create when ingestionKey missing", async () => {
+    const inserted = { id: "cs-1" };
+    const db = createMockDb([inserted]);
+    const repo = crawlSnapshotRepo(db);
+    const result = await repo.createIdempotent({ sourceId: "s-1" });
+    expect(result).toEqual(inserted);
+  });
+
+  it("createIdempotent returns existing row when conflict occurs", async () => {
+    const existing = { id: "cs-existing", ingestionKey: "k1" };
+    const makeChain = (rows: unknown[]) => {
+      const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
+      attachProxyMethods(proxy);
+      return proxy;
+    };
+
+    const db = {
+      select: vi.fn(() => makeChain([existing])),
+      insert: vi.fn(() => makeChain([])),
+      update: vi.fn(() => makeChain([])),
+      delete: vi.fn(() => makeChain([])),
+      transaction: vi.fn(),
+    } as unknown as DbClient;
+
+    const repo = crawlSnapshotRepo(db);
+    const result = await repo.createIdempotent({ sourceId: "s-1", ingestionKey: "k1" });
+    expect(result).toEqual(existing);
+  });
+
+  it("createIdempotent throws when conflict and existing row missing", async () => {
+    const makeChain = (rows: unknown[]) => {
+      const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
+      attachProxyMethods(proxy);
+      return proxy;
+    };
+
+    const db = {
+      select: vi.fn(() => makeChain([])),
+      insert: vi.fn(() => makeChain([])),
+      update: vi.fn(() => makeChain([])),
+      delete: vi.fn(() => makeChain([])),
+      transaction: vi.fn(),
+    } as unknown as DbClient;
+
+    const repo = crawlSnapshotRepo(db);
+    await expect(repo.createIdempotent({ sourceId: "s-1", ingestionKey: "k1" })).rejects.toThrow(
+      "Failed to create or fetch idempotent crawl snapshot",
+    );
+  });
+
   it("findBySourceAndHash returns row or undefined", async () => {
     const row = { id: "cs-1" };
     const db = createMockDb([row]);
     const repo = crawlSnapshotRepo(db);
     const result = await repo.findBySourceAndHash("s-1", "hash");
     expect(result).toEqual(row);
+  });
+
+  it("findBySourceAndHash returns undefined when missing", async () => {
+    const db = createMockDb([]);
+    const repo = crawlSnapshotRepo(db);
+    const result = await repo.findBySourceAndHash("s-1", "missing");
+    expect(result).toBeUndefined();
   });
 
   it("findLatestBySource returns first row", async () => {
@@ -766,10 +823,80 @@ describe("crawlJobRepo", () => {
     await expect(repo.create({ sourceId: "s-1" })).resolves.toEqual(row);
   });
 
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = crawlJobRepo(db);
+    await expect(repo.create({ sourceId: "s-1" })).rejects.toThrow("Failed to create crawl job");
+  });
+
+  it("findById returns row and undefined", async () => {
+    const row = { id: "j-1" };
+    const repoWithRow = crawlJobRepo(createMockDb([row]));
+    await expect(repoWithRow.findById("j-1")).resolves.toEqual(row);
+
+    const repoMissing = crawlJobRepo(createMockDb([]));
+    await expect(repoMissing.findById("missing")).resolves.toBeUndefined();
+  });
+
+  it("findUnresolvedFailed returns rows", async () => {
+    const rows = [{ id: "j-1" }, { id: "j-2" }];
+    const db = createMockDb(rows);
+    const repo = crawlJobRepo(db);
+    await expect(repo.findUnresolvedFailed(10)).resolves.toEqual(rows);
+  });
+
+  it("markRunning returns updated row", async () => {
+    const row = { id: "j-1", status: "running" };
+    const db = createMockDb([row]);
+    const repo = crawlJobRepo(db);
+    await expect(repo.markRunning("j-1")).resolves.toEqual(row);
+  });
+
+  it("markRunning throws when missing", async () => {
+    const db = createMockDb([]);
+    const repo = crawlJobRepo(db);
+    await expect(repo.markRunning("missing")).rejects.toThrow("Crawl job not found: missing");
+  });
+
+  it("markSucceeded returns updated row", async () => {
+    const row = { id: "j-1", status: "succeeded" };
+    const db = createMockDb([row]);
+    const repo = crawlJobRepo(db);
+    await expect(
+      repo.markSucceeded("j-1", true, ["LOW_CONFIDENCE"], { quality: {} }),
+    ).resolves.toEqual(row);
+  });
+
+  it("markSucceeded throws when missing", async () => {
+    const db = createMockDb([]);
+    const repo = crawlJobRepo(db);
+    await expect(repo.markSucceeded("missing", false, [])).rejects.toThrow(
+      "Crawl job not found: missing",
+    );
+  });
+
+  it("markFailed returns updated row", async () => {
+    const row = { id: "j-1", status: "failed" };
+    const db = createMockDb([row]);
+    const repo = crawlJobRepo(db);
+    await expect(repo.markFailed("j-1", "transient", "error")).resolves.toEqual(row);
+  });
+
   it("markFailed throws when missing", async () => {
     const db = createMockDb([]);
     const repo = crawlJobRepo(db);
     await expect(repo.markFailed("missing", "transient", "error")).rejects.toThrow(
+      "Crawl job not found: missing",
+    );
+  });
+
+  it("markPolicyBlocked returns updated row and throws when missing", async () => {
+    const row = { id: "j-1", status: "policy_blocked" };
+    const repoWithRow = crawlJobRepo(createMockDb([row]));
+    await expect(repoWithRow.markPolicyBlocked("j-1", "blocked")).resolves.toEqual(row);
+
+    const repoMissing = crawlJobRepo(createMockDb([]));
+    await expect(repoMissing.markPolicyBlocked("missing", "blocked")).rejects.toThrow(
       "Crawl job not found: missing",
     );
   });
@@ -799,6 +926,94 @@ describe("crawlDlqRepo", () => {
         payload: { sourceId: "s-1" },
       }),
     ).resolves.toEqual(row);
+  });
+
+  it("create throws when insert returns no rows", async () => {
+    const db = createMockDb([]);
+    const repo = crawlDlqRepo(db);
+    await expect(
+      repo.create({
+        sourceId: "s-1",
+        reason: "Fetch failed",
+        errorClass: "transient",
+        payload: { sourceId: "s-1" },
+      }),
+    ).rejects.toThrow("Failed to create DLQ entry");
+  });
+
+  it("findById returns row and undefined", async () => {
+    const row = { id: "d-1" };
+    const repoWithRow = crawlDlqRepo(createMockDb([row]));
+    await expect(repoWithRow.findById("d-1")).resolves.toEqual(row);
+
+    const repoMissing = crawlDlqRepo(createMockDb([]));
+    await expect(repoMissing.findById("missing")).resolves.toBeUndefined();
+  });
+
+  it("findUnresolved and findUnresolvedBySource return rows", async () => {
+    const rows = [{ id: "d-1" }];
+    const db = createMockDb(rows);
+    const repo = crawlDlqRepo(db);
+    await expect(repo.findUnresolved(10)).resolves.toEqual(rows);
+    await expect(repo.findUnresolvedBySource("s-1", 10)).resolves.toEqual(rows);
+  });
+
+  it("markReplayed increments replay count", async () => {
+    const current = { id: "d-1", replayCount: 2 };
+    const updated = { id: "d-1", replayCount: 3 };
+    const makeChain = (rows: unknown[]) => {
+      const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
+      attachProxyMethods(proxy);
+      return proxy;
+    };
+
+    let selectCalls = 0;
+    const db = {
+      select: vi.fn(() => {
+        selectCalls += 1;
+        return makeChain(selectCalls === 1 ? [current] : []);
+      }),
+      insert: vi.fn(() => makeChain([])),
+      update: vi.fn(() => makeChain([updated])),
+      delete: vi.fn(() => makeChain([])),
+      transaction: vi.fn(),
+    } as unknown as DbClient;
+
+    const repo = crawlDlqRepo(db);
+    await expect(repo.markReplayed("d-1")).resolves.toEqual(updated);
+  });
+
+  it("markReplayed throws when entry missing", async () => {
+    const db = createMockDb([]);
+    const repo = crawlDlqRepo(db);
+    await expect(repo.markReplayed("missing")).rejects.toThrow("DLQ entry not found: missing");
+  });
+
+  it("markReplayed throws when update returns no rows", async () => {
+    const current = { id: "d-1", replayCount: 2 };
+    const makeChain = (rows: unknown[]) => {
+      const proxy = Promise.resolve(rows) as Promise<unknown[]> & Record<string, unknown>;
+      attachProxyMethods(proxy);
+      return proxy;
+    };
+
+    const db = {
+      select: vi.fn(() => makeChain([current])),
+      insert: vi.fn(() => makeChain([])),
+      update: vi.fn(() => makeChain([])),
+      delete: vi.fn(() => makeChain([])),
+      transaction: vi.fn(),
+    } as unknown as DbClient;
+
+    const repo = crawlDlqRepo(db);
+    await expect(repo.markReplayed("d-1")).rejects.toThrow("Failed to update DLQ entry: d-1");
+  });
+
+  it("resolve returns updated row", async () => {
+    const updated = { id: "d-1", resolvedAt: new Date() };
+    const db = createMockDb([updated]);
+    const repo = crawlDlqRepo(db);
+    await expect(repo.resolve("d-1")).resolves.toEqual(updated);
   });
 
   it("resolve throws when missing", async () => {
