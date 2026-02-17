@@ -65,6 +65,7 @@ Deliver core incentive engine across US/UK/AU/CA with:
 Last updated: 2026-02-17
 
 - Active branch: `feat/phase-1a3-normalization`
+- Completed: 1A.2 Repository layer + migrations ✅
 - Completed: 1A.3 Normalization pipeline ✅
 
 ### Completed in this checkpoint
@@ -73,7 +74,10 @@ Last updated: 2026-02-17
   - Lint: 121 files, 0 warnings
   - Typecheck: 16 packages successful  
   - Test: 150 tests passed
-- 1A.2 Repository layer: DONE_CODE (pending runtime DB smoke test)
+- 1A.2 Repository layer: DONE_FULL ✅
+  - Runtime DB smoke: `db:migrate` PASS
+  - Seed verification: `db:seed` PASS
+  - DB package tests: 103 passing
 - 1A.3 Normalization pipeline: DONE_FULL ✅
   - Package: `@validatehome/normalization` created
   - HTML + PDF extractors
@@ -82,12 +86,10 @@ Last updated: 2026-02-17
   - Currency converter with historical rates
   - 11 passing tests
 
-### Remaining to close this unit
+### Current focus
 
-- Runtime DB smoke in reachable Postgres environment:
-  - `pnpm --filter @validatehome/db db:migrate`
-  - `pnpm --filter @validatehome/db db:seed`
-- Prior failure root cause: `ECONNREFUSED` (environment)
+- Phase 1A closeout evidence complete.
+- Hold on Phase 1B implementation until explicit go-ahead.
 
 ---
 
@@ -122,18 +124,17 @@ Status: `DONE_FULL` ✅
 
 ### 1A.2 Repository layer + migrations
 
-Status: `DONE_CODE`
+Status: `DONE_FULL` ✅
 
 Done:
 
 - Repository layer, migration artifacts, seed wiring, and coverage hardening completed.
 
-Remaining for `DONE_FULL`:
+Closeout evidence:
 
-- Run in reachable DB env:
-  - `pnpm --filter @validatehome/db db:migrate`
-  - `pnpm --filter @validatehome/db db:seed`
-- Log evidence (command + result) in Section 9.
+- `pnpm db:migrate` PASS (migrations applied successfully).
+- `pnpm --filter @validatehome/db db:seed` PASS (seed data inserted successfully).
+- `pnpm --filter @validatehome/db test` PASS (103 tests).
 
 Definition of Done:
 
@@ -178,11 +179,15 @@ Tasks:
 - Fetch policy with `ETag`/`If-None-Match` and `Last-Modified` fallback.
 - Per-host rate limiting, retry/backoff, and circuit-breakers.
 - Store raw artifacts with content hashes.
+- Idempotent ingestion writes (`sourceId + fetchTimestamp + contentHash`) to prevent duplicate creates on retry.
+- Dead-letter queue (DLQ) + replay command for failed crawl/parse jobs with bounded retry policy.
+- Replay-safe orchestration: rerunning a batch must not change canonical state when inputs are unchanged.
 
 Definition of Done:
 
 - Functional: scheduled crawls succeed for pilot sources in all 4 countries.
 - Hard gates: crawler governance and conditional-fetch KPI evidence recorded.
+- Hard gates: idempotency and DLQ/replay drills pass with evidence in Section 9.
 
 ### 1B.2 Parse pipeline
 
@@ -193,11 +198,14 @@ Tasks:
 - HTML parser with source-specific extractors.
 - PDF extraction with fallback strategy.
 - Schema validation and confidence scoring.
+- Data-quality scoring pipeline with field completeness, extraction confidence, and validation failure rate.
+- Route low-confidence or conflicting extractions to review queue with explicit reason codes.
 
 Definition of Done:
 
 - Functional: valid canonical candidates for pilot sources.
 - Hard gates: deterministic fixture regressions + parse error budget checks.
+- Hard gates: data-quality SLOs tracked and passing for pilot datasets.
 
 ### 1B.3 Screenshot/DOM/Text diff
 
@@ -209,11 +217,13 @@ Tasks:
 - Text + DOM + visual diff paths.
 - Significance scoring model and thresholds.
 - Emit actionable diff records for admin review.
+- Diff quality benchmark set with measured precision/recall for high-impact fields (status, budget, deadline).
 
 Definition of Done:
 
 - Functional: reproducible diff scores on regression fixtures.
 - Hard gates: false-positive/false-negative thresholds tracked.
+- Hard gates: high-impact diff precision/recall SLOs met and documented.
 
 ## Phase 1C - Rules + calculator
 
@@ -259,11 +269,14 @@ Tasks:
 - SSG/ISR freshness policy.
 - Structured data + canonical + hreflang wiring.
 - Verification metadata (last checked/source/changelog links).
+- Core Web Vitals budget for SEO pages: p75 INP <= 200 ms, LCP <= 2.5 s, CLS <= 0.1 (mobile + desktop samples).
+- Accessibility conformance for core templates to WCAG 2.2 AA (focus visibility, keyboard navigation, target size).
 
 Definition of Done:
 
 - Functional: pilot pages render correctly on desktop/mobile.
 - Hard gates: hreflang bidirectional checks, canonical consistency, sitemap freshness checks.
+- Hard gates: CWV budget and WCAG 2.2 AA checks pass for pilot templates.
 
 ### 1D.2 Admin review and overrides
 
@@ -274,11 +287,13 @@ Tasks:
 - Diff review queue UI.
 - Approve/reject workflow + audit history.
 - Program override editor with validation.
+- Accessible admin interactions (keyboard-first flow, visible focus, error messaging, target size compliance).
 
 Definition of Done:
 
 - Functional: reviewer can process diff and publish override with traceability.
 - Hard gates: role-based authorization tests + audit integrity checks.
+- Hard gates: admin critical flows pass WCAG 2.2 AA checks.
 
 ## Phase 1E - Search, API, and local pages
 
@@ -306,11 +321,14 @@ Tasks:
 - API contract and versioning policy.
 - API key auth + quotas.
 - Docs/examples + rate limiting.
+- RFC 9457 `application/problem+json` error envelope standardized across read endpoints.
+- Stable machine-readable error codes and `traceId` correlation field for support/debug.
 
 Definition of Done:
 
 - Functional: stable read-only endpoints with key-based access.
 - Hard gates: OWASP API controls and abuse protections validated.
+- Hard gates: error-contract conformance tests pass (status mapping + problem detail schema).
 
 ### 1E.3 Local landing pages (top 50 x 4)
 
@@ -368,11 +386,13 @@ Tasks:
 - Add local service orchestration baseline (DB/search/cache) for repeatable validation.
 - Add E2E smoke flows (home, program page, calculator, search).
 - Add CI release checks for build, smoke, and rollback readiness.
+- Add failure-injection drills for crawl/parse/diff workers (retry, DLQ, replay, idempotent recovery).
 
 Definition of Done:
 
 - Functional: release candidate passes smoke on reproducible environment.
 - Hard gates: CI release gate, smoke artifacts, and rollback checklist all pass.
+- Hard gates: resilience drill evidence captured for replay + duplicate-event protection.
 
 ---
 
@@ -380,7 +400,7 @@ Definition of Done:
 
 ### Active blockers
 
-- DB runtime smoke requires reachable Postgres (`ECONNREFUSED` observed previously).
+- None (DB availability blocker resolved; see R1 status and Section 9 evidence).
 
 ### Required dependencies before Phase 1 close
 
@@ -497,6 +517,38 @@ Deliberate differences (retained for gold-standard operations):
 - Release checklist includes rollback and data migration verification.
 - Evidence: CI run URLs, coverage artifacts, and smoke test outputs.
 
+### H) API contract gate (RFC 9457 aligned)
+
+- API and B2B endpoints emit standardized `application/problem+json` for 4xx/5xx classes.
+- Problem details include stable `type`, `title`, `status`, and machine-actionable extension fields.
+- Error-code catalog is versioned and tested against endpoint contract snapshots.
+- Evidence: contract test run + example responses for representative error classes.
+
+### I) Data quality and trust gate
+
+- SLOs defined and tracked for extraction and normalization quality on pilot corpora.
+- Minimum targets:
+  - Field completeness >= 95% for required canonical fields.
+  - High-impact diff precision >= 0.95 and recall >= 0.90.
+  - Candidate-to-publish validation pass rate >= 98% for non-manual paths.
+  - Staleness SLO: no published program older than freshness policy without explicit stale marker.
+- Confidence-routing policy documented (auto-publish vs review queue thresholds).
+- Evidence: quality dashboard snapshots + fixture evaluation logs.
+
+### J) Frontend performance and accessibility gate
+
+- Core templates (home, program page, calculator, search) meet CWV budgets in representative test runs.
+- Minimum budgets: p75 INP <= 200 ms, p75 LCP <= 2.5 s, p75 CLS <= 0.1.
+- WCAG 2.2 AA checks pass for core user journeys and admin critical flows.
+- Evidence: Lighthouse/field reports + accessibility audit outputs.
+
+### K) Pipeline resilience gate
+
+- Worker jobs are idempotent for re-delivery/replay scenarios.
+- DLQ and replay tooling exists with documented operator runbook.
+- Failure-injection drill demonstrates no duplicate canonical writes under retries.
+- Evidence: drill transcript + replay checksum comparison artifacts.
+
 ---
 
 ## 9) Evidence ledger (append-only)
@@ -507,6 +559,12 @@ Use one row per gate or major verification run.
 |---|---|---|---|---|---|---|
 | 2026-02-16 | 1A.2 | Coverage | `pnpm --filter @validatehome/db test --coverage` | PASS | local coverage report | team |
 | 2026-02-16 | 1A.2 | Runtime DB smoke | `db:migrate`, `db:seed` | BLOCKED | `ECONNREFUSED` env note | team |
+| 2026-02-17 | 1A.2 | Runtime DB smoke | `pnpm --filter @validatehome/db db:migrate` | BLOCKED | `ECONNREFUSED` to `postgresql://localhost:5432/validatehome` | agent |
+| 2026-02-17 | 1A.2 | Runtime DB smoke | `pnpm db:migrate` | BLOCKED | preflight OK (`.env` loaded), but DB unreachable (`ECONNREFUSED 127.0.0.1:5432`); `docker` missing in environment | agent |
+| 2026-02-17 | 1A.2 | Runtime DB smoke | `pnpm db:migrate` | PASS | migrations applied successfully after provisioning local PostgreSQL 16 | agent |
+| 2026-02-17 | 1A.2 | Runtime DB smoke | `pnpm --filter @validatehome/db db:seed` | PASS | seed complete (4 federal + 6 state/province jurisdictions, 11 programs, 12 geo mappings) | agent |
+| 2026-02-17 | 1A.2 | DB repository tests | `pnpm --filter @validatehome/db test` | PASS | 103 tests passed across `repo-factories` and `repositories` suites | agent |
+| 2026-02-17 | 1A.2 | DB coverage refresh | `pnpm --filter @validatehome/db test:coverage` | PASS | 103 tests passed; coverage: 98.26% stmts, 92.10% branches, 100% funcs, 98.17% lines | agent |
 
 ---
 
@@ -514,21 +572,25 @@ Use one row per gate or major verification run.
 
 | ID | Risk | Severity | Status | Mitigation | Owner | Due |
 |---|---|---|---|---|---|---|
-| R1 | DB env unavailable blocks 1A.2 closeout | High | Open | Provision Postgres env + rerun smoke checklist | TBD | Next session |
+| R1 | DB env unavailable blocks 1A.2 closeout | High | Closed | Local PostgreSQL 16 provisioned; migrate/seed evidence captured in Section 9 | agent | 2026-02-17 |
 | R2 | Crawl policy non-compliance risk | High | Open | Implement Section 8A gate before 1B rollout | TBD | Before 1B DONE |
 | R3 | API abuse/rate-limit gaps for B2B API | High | Open | Enforce Section 8D gate + quota tests | TBD | Before 1E.2 DONE |
 | R4 | SEO hreflang/canonical quality risk at scale | Medium | Open | Automate Section 8C validation in CI | TBD | Before 1D.1 DONE |
 | R5 | Supply-chain evidence missing for releases | Medium | Open | Add SBOM + provenance attestation steps | TBD | Before first public release |
+| R6 | Data quality drift could break trust claims | High | Open | Enforce Section 8I SLOs + confidence routing with alerts | TBD | Before 1B/1C DONE |
+| R7 | Retry/replay duplication could corrupt canonical state | High | Open | Enforce Section 8K idempotency + DLQ replay drills | TBD | Before 1B DONE |
+| R8 | Web vitals regressions may hurt SEO/conversion | Medium | Open | Enforce Section 8J CWV budgets in CI and pre-release checks | TBD | Before 1D.1 DONE |
+| R9 | Accessibility gaps in admin/user flows | Medium | Open | Enforce WCAG 2.2 AA audits for critical journeys | TBD | Before 1D.2 DONE |
 
 ---
 
 ## 11) Next session first 5 steps
 
-1. Bring up Postgres and run `db:migrate` + `db:seed` for 1A.2 closeout.
-2. Mark 1A.2 `DONE_FULL` only after recording evidence in Section 9.
-3. Start 1A.3 extraction contracts + normalization fixtures.
-4. Start 1B.1 country source allowlist and fetch policy implementation.
-5. Add conditional-fetch metrics (200/304) and robots compliance tests.
+1. Keep Postgres baseline stable (`pg_isready` check before DB commands).
+2. Optionally run `pnpm --filter @validatehome/db test:coverage` to refresh closeout artifact.
+3. Freeze Phase 1A evidence and avoid further churn to completed items.
+4. Prepare kickoff notes for 1B.1 (scope + acceptance tests only, no implementation yet).
+5. Start 1B.1 only after explicit phase-transition confirmation.
 
 ---
 
@@ -542,6 +604,10 @@ Use one row per gate or major verification run.
 - OWASP API Security Top 10 (2023): `https://owasp.org/API-Security/editions/2023/en/0x11-t10/`
 - SLSA levels: `https://slsa.dev/spec/v1.0/levels`
 - GitHub artifact attestations: `https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations`
+- RFC 9457 (Problem Details for HTTP APIs): `https://www.rfc-editor.org/rfc/rfc9457`
+- Core Web Vitals INP guidance: `https://web.dev/articles/inp`
+- WCAG 2.2 additions: `https://www.w3.org/WAI/standards-guidelines/wcag/new-in-22/`
+- OpenTelemetry overview: `https://opentelemetry.io/docs/what-is-opentelemetry/`
 
 ---
 
@@ -551,3 +617,5 @@ Use one row per gate or major verification run.
 - 2026-02-16: Added strict `PLAN.md` cross-check matrix for all 10 deliverables.
 - 2026-02-16: Added hard-gate framework (crawler, fetch, SEO, API security, supply-chain, observability).
 - 2026-02-16: Added evidence ledger and risk register for auditability.
+- 2026-02-17: Added Phase 1 must-have additions (API problem-details contract, data-quality SLOs, CWV + WCAG gates, pipeline idempotency + DLQ/replay resilience).
+- 2026-02-17: Closed 1A.2 to `DONE_FULL` after local PostgreSQL provisioning, successful migrate/seed, and DB test pass evidence.

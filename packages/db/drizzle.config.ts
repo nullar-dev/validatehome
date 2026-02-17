@@ -1,4 +1,7 @@
 import { defineConfig } from "drizzle-kit";
+import { loadDotEnvIfPresent } from "./src/utils/load-env.ts";
+
+loadDotEnvIfPresent();
 
 export default defineConfig({
   schema: "./src/schema/index.ts",

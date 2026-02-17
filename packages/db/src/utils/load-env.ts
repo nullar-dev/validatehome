@@ -1,0 +1,21 @@
+import { resolve } from "node:path";
+
+function loadEnvFileIfPresent(filePath: string): void {
+  try {
+    process.loadEnvFile(filePath);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+}
+
+export function loadDotEnvIfPresent(baseDir: string = process.cwd()): void {
+  // Precedence is intentional: package-level .env is loaded first and wins on duplicate keys.
+  // process.loadEnvFile does not override existing env vars.
+  const candidates = [resolve(baseDir, ".env"), resolve(baseDir, "../../.env")];
+  for (const filePath of candidates) {
+    loadEnvFileIfPresent(filePath);
+  }
+}

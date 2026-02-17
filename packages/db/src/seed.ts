@@ -13,6 +13,7 @@ import { productCategories, programCategories } from "./schema/category.js";
 import { geoMappings } from "./schema/geo.js";
 import { jurisdictions } from "./schema/jurisdiction.js";
 import { programs } from "./schema/program.js";
+import { loadDotEnvIfPresent } from "./utils/load-env.js";
 
 const logInfo = (message: string): void => {
   process.stdout.write(`${message}\n`);
@@ -30,6 +31,7 @@ function must<T>(value: T | undefined, label: string): T {
 }
 
 async function seed() {
+  loadDotEnvIfPresent();
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     logError("DATABASE_URL environment variable is required");
