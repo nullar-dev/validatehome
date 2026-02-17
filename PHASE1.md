@@ -400,7 +400,7 @@ Definition of Done:
 
 ### Active blockers
 
-- DB runtime smoke requires reachable Postgres (`ECONNREFUSED` observed previously).
+- None (DB availability blocker resolved; see R1 status and Section 9 evidence).
 
 ### Required dependencies before Phase 1 close
 

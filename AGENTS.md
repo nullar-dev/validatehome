@@ -1,4 +1,5 @@
 # AGENTS.md
+
 Operational guidance for coding agents in this repository.
 
 ## 1) Repo + Toolchain
