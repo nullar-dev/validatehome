@@ -161,20 +161,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
   }
 
   private escapeRegexSpecialChars(str: string): string {
-    return str
-      .replaceAll("\\", "\\\\")
-      .replaceAll("*", "\\*")
-      .replaceAll("+", "\\+")
-      .replaceAll("?", "\\?")
-      .replaceAll("^", "\\^")
-      .replaceAll("$", "\\$")
-      .replaceAll("{", "\\{")
-      .replaceAll("}", "\\}")
-      .replaceAll("(", "\\(")
-      .replaceAll(")", "\\)")
-      .replaceAll("|", "\\|")
-      .replaceAll("[", "\\[")
-      .replaceAll("]", "\\]");
+    return str.replace(/[*+?^${}()|[\]\\]/g, (match) => `\\${match}`);
   }
 
   private stripHtml(html: string): string {
