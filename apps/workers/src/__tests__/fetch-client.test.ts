@@ -94,4 +94,42 @@ describe("fetchSourceWithRetry", () => {
     expect(result.statusCode).toBe(200);
     expect(result.content).toContain("ok");
   });
+
+  it("does not retry non-transient failures", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("User-agent: *\nDisallow:", {
+          status: 200,
+          headers: { "content-type": "text/plain" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response("", { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchSourceWithRetry(baseSource, 3)).rejects.toThrow(
+      "Fetch failed with status 404",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("opens circuit breaker after repeated failures", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("User-agent: *\nDisallow:", {
+          status: 200,
+          headers: { "content-type": "text/plain" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response("", { status: 500 }))
+      .mockResolvedValueOnce(new Response("", { status: 500 }))
+      .mockResolvedValueOnce(new Response("", { status: 500 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchSource(baseSource)).rejects.toThrow("Fetch failed with status 500");
+    await expect(fetchSource(baseSource)).rejects.toThrow("Fetch failed with status 500");
+    await expect(fetchSource(baseSource)).rejects.toThrow("Fetch failed with status 500");
+    await expect(fetchSource(baseSource)).rejects.toThrow("Fetch blocked by circuit breaker until");
+  });
 });

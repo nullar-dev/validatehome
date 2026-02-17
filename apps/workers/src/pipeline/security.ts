@@ -19,7 +19,7 @@ function isPrivateIpv4(value: string): boolean {
 }
 
 function isBlockedHost(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
+  const normalized = hostname.toLowerCase().replaceAll(/^\[|\]$/g, "");
   if (BLOCKED_HOSTNAMES.has(normalized)) {
     return true;
   }
@@ -53,7 +53,10 @@ export function validateCrawlUrl(url: string, allowedHost: string): void {
     throw new Error("Blocked host for crawler policy");
   }
 
-  if (parsed.hostname.toLowerCase() !== allowedHost.toLowerCase()) {
+  const parsedHost = parsed.hostname.toLowerCase().replaceAll(/^\[|\]$/g, "");
+  const allowlistedHost = allowedHost.toLowerCase().replaceAll(/^\[|\]$/g, "");
+
+  if (parsedHost !== allowlistedHost) {
     throw new Error("URL host mismatch with allowlisted source host");
   }
 }
