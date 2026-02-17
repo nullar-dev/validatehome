@@ -1,7 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { URL } from "node:url";
 import postgres from "postgres";
+import { loadDotEnvIfPresent } from "../utils/load-env.js";
 
 const DEFAULT_TIMEOUT_MS = 4000;
 
@@ -12,40 +11,6 @@ const output = (message: string): void => {
 const outputError = (message: string): void => {
   process.stderr.write(`${message}\n`);
 };
-
-function loadDotEnvIfPresent(): void {
-  const candidates = [resolve(process.cwd(), ".env"), resolve(process.cwd(), "../../.env")];
-
-  for (const filePath of candidates) {
-    if (!existsSync(filePath)) {
-      continue;
-    }
-
-    const raw = readFileSync(filePath, "utf8");
-    for (const line of raw.split(/\r?\n/)) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) {
-        continue;
-      }
-
-      const equalsIndex = trimmed.indexOf("=");
-      if (equalsIndex <= 0) {
-        continue;
-      }
-
-      const key = trimmed.slice(0, equalsIndex).trim();
-      if (!key || process.env[key] !== undefined) {
-        continue;
-      }
-
-      const value = trimmed
-        .slice(equalsIndex + 1)
-        .trim()
-        .replace(/^['"]|['"]$/g, "");
-      process.env[key] = value;
-    }
-  }
-}
 
 function getDatabaseUrl(): string {
   const value = process.env.DATABASE_URL;

@@ -6,8 +6,6 @@
  * for data setup. This is acceptable for one-time infrastructure code.
  */
 // sonarcloud-disable-next-line no-duplicated-lines
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { sql } from "drizzle-orm";
 import { createDb } from "./index.js";
 import { benefits } from "./schema/benefit.js";
@@ -15,6 +13,7 @@ import { productCategories, programCategories } from "./schema/category.js";
 import { geoMappings } from "./schema/geo.js";
 import { jurisdictions } from "./schema/jurisdiction.js";
 import { programs } from "./schema/program.js";
+import { loadDotEnvIfPresent } from "./utils/load-env.js";
 
 const logInfo = (message: string): void => {
   process.stdout.write(`${message}\n`);
@@ -23,40 +22,6 @@ const logInfo = (message: string): void => {
 const logError = (message: string): void => {
   process.stderr.write(`${message}\n`);
 };
-
-function loadDotEnvIfPresent(): void {
-  const candidates = [resolve(process.cwd(), ".env"), resolve(process.cwd(), "../../.env")];
-
-  for (const filePath of candidates) {
-    if (!existsSync(filePath)) {
-      continue;
-    }
-
-    const raw = readFileSync(filePath, "utf8");
-    for (const line of raw.split(/\r?\n/)) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) {
-        continue;
-      }
-
-      const equalsIndex = trimmed.indexOf("=");
-      if (equalsIndex <= 0) {
-        continue;
-      }
-
-      const key = trimmed.slice(0, equalsIndex).trim();
-      if (!key || process.env[key] !== undefined) {
-        continue;
-      }
-
-      const value = trimmed
-        .slice(equalsIndex + 1)
-        .trim()
-        .replace(/^['"]|['"]$/g, "");
-      process.env[key] = value;
-    }
-  }
-}
 
 function must<T>(value: T | undefined, label: string): T {
   if (value === undefined) {
