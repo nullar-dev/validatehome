@@ -7,7 +7,7 @@ describe("validateCrawlUrl", () => {
   });
 
   it("blocks localhost", () => {
-    expect(() => validateCrawlUrl("http://localhost:3000", "localhost")).toThrow(
+    expect(() => validateCrawlUrl("https://localhost:3000", "localhost")).toThrow(
       "Blocked host for crawler policy",
     );
   });
@@ -29,13 +29,13 @@ describe("validateCrawlUrl", () => {
   });
 
   it("blocks private ipv4 ranges", () => {
-    expect(() => validateCrawlUrl("http://10.0.0.8/a", "10.0.0.8")).toThrow(
+    expect(() => validateCrawlUrl("https://10.0.0.8/a", "10.0.0.8")).toThrow(
       "Blocked host for crawler policy",
     );
-    expect(() => validateCrawlUrl("http://172.16.0.4/a", "172.16.0.4")).toThrow(
+    expect(() => validateCrawlUrl("https://172.16.0.4/a", "172.16.0.4")).toThrow(
       "Blocked host for crawler policy",
     );
-    expect(() => validateCrawlUrl("http://192.168.1.2/a", "192.168.1.2")).toThrow(
+    expect(() => validateCrawlUrl("https://192.168.1.2/a", "192.168.1.2")).toThrow(
       "Blocked host for crawler policy",
     );
   });
@@ -50,7 +50,7 @@ describe("validateCrawlUrl", () => {
   });
 
   it("blocks private ipv6 ranges", () => {
-    expect(() => validateCrawlUrl("http://[fd12::1]/a", "fd12::1")).toThrow(
+    expect(() => validateCrawlUrl("https://[fd12::1]/a", "fd12::1")).toThrow(
       "Blocked host for crawler policy",
     );
   });
