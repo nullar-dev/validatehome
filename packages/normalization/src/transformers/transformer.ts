@@ -156,10 +156,10 @@ export class Transformer {
     const slug = slugify(name);
 
     const budgetTotal = raw.budgetTotal.value
-      ? parseFloat(raw.budgetTotal.value.replace(/,/g, ""))
+      ? parseFloat(raw.budgetTotal.value.replaceAll(",", ""))
       : null;
     const budgetRemaining = raw.budgetRemaining.value
-      ? parseFloat(raw.budgetRemaining.value.replace(/,/g, ""))
+      ? parseFloat(raw.budgetRemaining.value.replaceAll(",", ""))
       : null;
 
     let budgetPctUsed: number | null = null;

@@ -149,7 +149,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
   }
 
   private extractBySelector(html: string, selector: string): string | null {
-    const cleanSelector = selector.replace(/[[\]]/g, "");
+    const cleanSelector = selector.replaceAll("]", "").replaceAll("[", "");
     const regex = new RegExp(
       `<[^>]*class=["']?[^"']*${cleanSelector}[^"']*["']?[^>]*>([^<]*)`,
       "i",
@@ -159,11 +159,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
   }
 
   private stripHtml(html: string): string {
-    return html
-      .replace(/<[^>]*>/g, "")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .trim();
+    return html.replaceAll("<[^>]*>", "").replaceAll("&nbsp;", " ").replaceAll("&amp;", "&").trim();
   }
 
   private extractStatus(html: string, selector: string): ExtractedField<ProgramStatus> {
@@ -201,12 +197,12 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
 
     return {
       total: {
-        value: totalMatch?.[1] ? totalMatch[1].replace(/,/g, "") : null,
+        value: totalMatch?.[1] ? totalMatch[1].replaceAll(",", "") : null,
         confidence: totalMatch ? 0.8 : 0,
         rawValue: totalMatch?.[0] ?? undefined,
       },
       remaining: {
-        value: remainingMatch?.[1] ? remainingMatch[1].replace(/,/g, "") : null,
+        value: remainingMatch?.[1] ? remainingMatch[1].replaceAll(",", "") : null,
         confidence: remainingMatch ? 0.8 : 0,
         rawValue: remainingMatch?.[0] ?? undefined,
       },
@@ -278,7 +274,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
   private parseBenefitAmount(match: string): { value: string | null; confidence: number } {
     const amountMatch = match.match(/\$?([\d,]+(?:\.\d{2})?)\s*%?/);
     return {
-      value: amountMatch?.[1] ? amountMatch[1].replace(/,/g, "") : null,
+      value: amountMatch?.[1] ? amountMatch[1].replaceAll(",", "") : null,
       confidence: amountMatch ? 0.85 : 0,
     };
   }
@@ -286,7 +282,7 @@ export class HtmlExtractor extends BaseExtractor implements Extractor {
   private parseBenefitPercentage(match: string): { value: number | null; confidence: number } {
     const percentMatch = match.match(/(\d+)\s*%/);
     return {
-      value: percentMatch?.[1] ? parseInt(percentMatch[1], 10) : null,
+      value: percentMatch?.[1] ? Number.parseInt(percentMatch[1], 10) : null,
       confidence: percentMatch ? 0.85 : 0,
     };
   }

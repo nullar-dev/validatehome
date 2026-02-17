@@ -112,7 +112,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor {
       if (inTextBlock && trimmed.startsWith("(") && trimmed.endsWith(")")) {
         const text = trimmed.slice(1, -1);
         textLines.push(
-          text.replace(/\\(\d{3})/g, (_, octal) => String.fromCharCode(parseInt(octal, 8))),
+          text.replace(/\\(\d{3})/g, (_, octal) => String.fromCodePoint(Number.parseInt(octal, 8))),
         );
       }
 
@@ -216,7 +216,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor {
       const match = pattern.exec(text);
       if (match?.[1]) {
         total = {
-          value: match[1].replace(/,/g, ""),
+          value: match[1].replaceAll(",", ""),
           confidence: 0.7,
           rawValue: match[0],
         };
@@ -228,7 +228,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor {
       const match = pattern.exec(text);
       if (match?.[1]) {
         remaining = {
-          value: match[1].replace(/,/g, ""),
+          value: match[1].replaceAll(",", ""),
           confidence: 0.7,
           rawValue: match[0],
         };
@@ -371,7 +371,7 @@ export class PdfExtractor extends BaseExtractor implements Extractor {
         const match = pattern.exec(line);
         if (match?.[1]) {
           amount = {
-            value: match[1].replace(/,/g, ""),
+            value: match[1].replaceAll(",", ""),
             confidence: 0.7,
             rawValue: match[0],
           };
