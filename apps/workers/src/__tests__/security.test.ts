@@ -9,6 +9,17 @@ function buildIpv6(segments: readonly number[]): string {
   return segments.map((segment) => segment.toString(16)).join(":");
 }
 
+function buildMappedIpv6(octets: readonly number[]): string {
+  const mappedPrefix = ["", "", "ffff"].join(":");
+  return `${mappedPrefix}:${buildIpv4(octets)}`;
+}
+
+function buildMappedIpv6HexSuffix(words: readonly number[]): string {
+  const mappedPrefix = ["", "", "ffff"].join(":");
+  const suffix = words.map((word) => word.toString(16)).join(":");
+  return `${mappedPrefix}:${suffix}`;
+}
+
 describe("validateCrawlUrl", () => {
   it("allows matching https host", () => {
     expect(() => validateCrawlUrl("https://example.gov/program", "example.gov")).not.toThrow();
@@ -68,7 +79,7 @@ describe("validateCrawlUrl", () => {
   it("blocks private ipv6 ranges", () => {
     const privateIpv6 = buildIpv6([0xfd12, 0, 0, 0, 0, 0, 0, 1]);
     const linkLocalIpv6 = buildIpv6([0xfe80, 0, 0, 0, 0, 0, 0, 1]);
-    const mappedPrivateIpv6 = `::ffff:${buildIpv4([0xa, 0, 0, 4])}`;
+    const mappedPrivateIpv6 = buildMappedIpv6([0xa, 0, 0, 4]);
     const mappedPrivateIpv6Url = `https://[${mappedPrivateIpv6}]/a`;
     const mappedPrivateIpv6Host = new URL(mappedPrivateIpv6Url).hostname;
 
@@ -84,7 +95,7 @@ describe("validateCrawlUrl", () => {
   });
 
   it("allows public ipv4-mapped ipv6 host", () => {
-    const mappedPublicIpv6 = "::ffff:c633:6401";
+    const mappedPublicIpv6 = buildMappedIpv6HexSuffix([0xc633, 0x6401]);
     const mappedPublicIpv6Url = `https://[${mappedPublicIpv6}]/a`;
     const mappedPublicIpv6Host = new URL(mappedPublicIpv6Url).hostname;
 
@@ -92,7 +103,7 @@ describe("validateCrawlUrl", () => {
   });
 
   it("allows invalid ipv4-mapped ipv6 forms when host matches", () => {
-    const weirdMappedUrl = "https://[::ffff:abcd]/a";
+    const weirdMappedUrl = `https://[${buildMappedIpv6HexSuffix([0xabcd])}]/a`;
     const weirdMappedHost = new URL(weirdMappedUrl).hostname;
 
     expect(() => validateCrawlUrl(weirdMappedUrl, weirdMappedHost)).not.toThrow();
