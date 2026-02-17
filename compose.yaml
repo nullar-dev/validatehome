@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: validatehome-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: validatehome
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d validatehome"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - validatehome_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  validatehome_postgres_data:
