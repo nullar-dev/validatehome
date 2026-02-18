@@ -2,16 +2,16 @@ import type { EligibleProgram } from "@validatehome/calculator";
 import type { Country } from "@validatehome/shared";
 
 export interface CalculatorFixture {
-  name: string;
-  country: Country;
-  category: string;
-  programs: EligibleProgram[];
-  stickerPrice: number;
-  householdIncome?: number;
-  estimatedTaxLiability?: number;
-  expectedNetCost: number;
-  expectedTaxSavings: number;
-  description: string;
+  readonly name: string;
+  readonly country: Country;
+  readonly category: string;
+  readonly programs: EligibleProgram[];
+  readonly stickerPrice: number;
+  readonly householdIncome?: number;
+  readonly estimatedTaxLiability?: number;
+  readonly expectedNetCost: number;
+  readonly expectedTaxSavings: number;
+  readonly description: string;
 }
 
 export const US_HEAT_PUMP_FIXTURE: EligibleProgram[] = [

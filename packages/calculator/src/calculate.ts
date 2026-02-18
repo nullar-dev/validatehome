@@ -10,7 +10,10 @@ import type {
 } from "./types.js";
 import { COUNTRY_TAX_CONFIGS } from "./types.js";
 
+/** Default phaseout range for income-based credit reductions. */
 export const DEFAULT_PHASEOUT_RANGE = 100000;
+
+/** Calculates incentive amount considering lifetime/annual limits. */
 
 function calculateIncentiveAmount(
   program: EligibleProgram,
@@ -109,10 +112,12 @@ function formatAmount(amount: number, currency: Currency): string {
   return `${symbols[currency]}${amount.toLocaleString()}`;
 }
 
+/** Returns tax configuration for a given country. */
 export function getCountryTaxConfig(country: Country): CountryTaxConfig {
   return COUNTRY_TAX_CONFIGS[country];
 }
 
+/** Calculates Alternative Minimum Tax (AMT) impact for US tax credits. */
 export function calculateAmtImpact(
   country: Country,
   householdIncome: number | undefined,
@@ -144,6 +149,7 @@ export function calculateAmtImpact(
   return { applicable: false };
 }
 
+/** Applies country-specific VAT/GST/HST to an amount. */
 export function applyCountryTaxRules(
   amount: number,
   country: Country,
@@ -174,6 +180,7 @@ export function applyCountryTaxRules(
   return amount;
 }
 
+/** Calculates net cost after applying incentives, tax credits, and usage limits. */
 export function calculateNetCost(input: NetCostCalculatorInput): CalculationResult;
 export function calculateNetCost(
   stickerPrice: number,

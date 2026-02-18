@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { programUsageTracking, stackingRules } from "../schema/stacking.js";
 import type { DbClient } from "./types.js";
 
@@ -98,7 +98,7 @@ export function stackingRulesRepo(db: DbClient): StackingRulesRepo {
           target: stackingRules.ruleId,
           set: {
             ...data,
-            version: 1,
+            version: sql`${stackingRules.version} + 1`,
             updatedAt: new Date(),
           },
           where: eq(stackingRules.isActive, true),
@@ -161,28 +161,23 @@ export function programUsageRepo(db: DbClient): ProgramUsageRepo {
     },
 
     async upsert(data: NewProgramUsage): Promise<ProgramUsageRow> {
-      const existing = await this.findByProgramAndSession(data.programId, data.sessionId);
-      if (existing) {
-        const rows = await db
-          .update(programUsageTracking)
-          .set({
+      const rows = await db
+        .insert(programUsageTracking)
+        .values(data)
+        .onConflictDoUpdate({
+          target: [programUsageTracking.programId, programUsageTracking.sessionId],
+          set: {
             ...data,
             lastUpdated: new Date(),
-          })
-          .where(eq(programUsageTracking.id, existing.id))
-          .returning();
-        const updated = rows[0];
-        if (!updated) {
-          throw new Error("Failed to update program usage");
-        }
-        return updated;
+          },
+        })
+        .returning();
+
+      const result = rows[0];
+      if (!result) {
+        throw new Error("Failed to upsert program usage");
       }
-      const rows = await db.insert(programUsageTracking).values(data).returning();
-      const created = rows[0];
-      if (!created) {
-        throw new Error("Failed to create program usage");
-      }
-      return created;
+      return result;
     },
 
     async getLifetimeUsage(programId: string, sessionId: string): Promise<number> {
