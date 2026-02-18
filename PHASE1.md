@@ -102,7 +102,7 @@ Last updated: 2026-02-17
 |---|---|---|---|---|
 | 1 | Crawl/parse pipeline for initial US/UK/AU/CA targets | DONE_FULL | Source discovery, scheduler, fetch policies, parse orchestration, retries, DLQ/replay, idempotent ingestion implemented | None |
 | 2 | Screenshot-diff engine + significance scoring | DONE_FULL | Deterministic text/semantic/visual diff paths with significance scoring + benchmark command implemented | None |
-| 3 | Normalization pipeline raw -> canonical + multi-currency | IN_PROGRESS | Canonical schema + repos complete | Extraction/mapping, validation/confidence, currency strategy |
+| 3 | Normalization pipeline raw -> canonical + multi-currency | DONE_FULL | Package with extraction, transformer, confidence scoring, deduplication, validation, currency conversion for US/UK/AU/CA | None |
 | 4 | Stacker logic for US/UK/AU/CA | DONE_FULL | Rules engine package with US (25C/25D/state), UK (BUS/ECO4), AU (Solar Credits), CA (Greener Homes) rules + golden tests | None |
 | 5 | Net-cost calculator for all 4 countries (heat pumps + solar first) | DONE_FULL | Calculator with live DB inputs, tax credit nuance (non-refundable vs rebate), income caps, lifetime/annual tracking, VAT/GST handling, currency rates | None |
 | 6 | Program status pages (SSG/ISR + structured data + hreflang) | NOT_STARTED | Next.js scaffold exists | URL taxonomy, freshness policy, schema markup, i18n SEO validation |
