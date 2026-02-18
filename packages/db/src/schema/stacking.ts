@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -59,5 +60,7 @@ export const programUsageTracking = pgTable(
     lastUpdated: timestamp("last_updated", { withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [index("program_usage_program_session_idx").on(table.programId, table.sessionId)],
+  (table) => [
+    uniqueIndex("program_usage_program_session_idx").on(table.programId, table.sessionId),
+  ],
 );

@@ -403,9 +403,9 @@ export function getFixturesByCountry(country: Country): CalculatorFixture[] {
 }
 
 export function getFixturesByCategory(category: string): CalculatorFixture[] {
-  return CALCULATOR_FIXTURES.filter((f) => f.category === category);
+  return [...CALCULATOR_FIXTURES].filter((f) => f.category === category);
 }
 
 export function getAllFixtures(): CalculatorFixture[] {
-  return CALCULATOR_FIXTURES;
+  return [...CALCULATOR_FIXTURES];
 }

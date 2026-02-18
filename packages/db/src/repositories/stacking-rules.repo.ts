@@ -204,15 +204,31 @@ export function programUsageRepo(db: DbClient): ProgramUsageRepo {
         throw new Error("Amount cannot be negative");
       }
 
-      const currentAnnual = await this.getAnnualUsage(programId, sessionId);
-      const currentLifetime = await this.getLifetimeUsage(programId, sessionId);
+      const rows = await db
+        .insert(programUsageTracking)
+        .values({
+          programId,
+          sessionId,
+          annualUsedAmount: isAnnual ? String(amount) : "0",
+          lifetimeUsedAmount: String(amount),
+        })
+        .onConflictDoUpdate({
+          target: [programUsageTracking.programId, programUsageTracking.sessionId],
+          set: {
+            annualUsedAmount: isAnnual
+              ? sql`COALESCE(${programUsageTracking.annualUsedAmount}::numeric, 0) + ${amount}`
+              : programUsageTracking.annualUsedAmount,
+            lifetimeUsedAmount: sql`COALESCE(${programUsageTracking.lifetimeUsedAmount}::numeric, 0) + ${amount}`,
+            lastUpdated: new Date(),
+          },
+        })
+        .returning();
 
-      return this.upsert({
-        programId,
-        sessionId,
-        annualUsedAmount: String(currentAnnual + (isAnnual ? amount : 0)),
-        lifetimeUsedAmount: String(currentLifetime + amount),
-      });
+      const result = rows[0];
+      if (!result) {
+        throw new Error("Failed to add usage");
+      }
+      return result;
     },
   };
 }
