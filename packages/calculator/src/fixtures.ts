@@ -399,7 +399,7 @@ export const CALCULATOR_FIXTURES: CalculatorFixture[] = [
 ];
 
 export function getFixturesByCountry(country: Country): CalculatorFixture[] {
-  return CALCULATOR_FIXTURES.filter((f) => f.country === country);
+  return [...CALCULATOR_FIXTURES].filter((f) => f.country === country);
 }
 
 export function getFixturesByCategory(category: string): CalculatorFixture[] {
@@ -407,5 +407,5 @@ export function getFixturesByCategory(category: string): CalculatorFixture[] {
 }
 
 export function getAllFixtures(): CalculatorFixture[] {
-  return CALCULATOR_FIXTURES;
+  return [...CALCULATOR_FIXTURES];
 }

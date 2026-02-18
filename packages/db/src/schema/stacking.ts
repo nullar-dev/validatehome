@@ -8,8 +8,10 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { programs } from "./program.js";
 
 export const ruleLevelEnum = pgEnum("rule_level", [
   "federal",
@@ -52,12 +54,16 @@ export const programUsageTracking = pgTable(
   "program_usage_tracking",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    programId: text("program_id").notNull(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id),
     sessionId: text("session_id").notNull(),
     annualUsedAmount: numeric("annual_used_amount", { precision: 12, scale: 2 }),
     lifetimeUsedAmount: numeric("lifetime_used_amount", { precision: 12, scale: 2 }),
     lastUpdated: timestamp("last_updated", { withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [index("program_usage_program_session_idx").on(table.programId, table.sessionId)],
+  (table) => [
+    uniqueIndex("program_usage_program_session_idx").on(table.programId, table.sessionId),
+  ],
 );
