@@ -2,7 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { programUsageTracking, stackingRules } from "../schema/stacking.js";
 import type { DbClient } from "./types.js";
 
-interface StackingRuleInput {
+export interface StackingRuleInput {
   readonly ruleId: string;
   readonly jurisdiction: string;
   readonly conditions: unknown;

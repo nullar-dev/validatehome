@@ -13,6 +13,16 @@ import { COUNTRY_TAX_CONFIGS } from "./types.js";
 /** Default phaseout range for income-based credit reductions. */
 export const DEFAULT_PHASEOUT_RANGE = 100000;
 
+/** Standard deduction used in AMT calculation (IRS 2024). */
+const AMT_STANDARD_DEDUCTION = 15000;
+
+/**
+ * AMT adjustment rate approximation.
+ * This is a simplified heuristic - actual AMT calculations are complex.
+ * Source: General IRS AMT guidance - consult a tax professional.
+ */
+const AMT_ADJUSTMENT_RATE = 0.1;
+
 /** Calculates incentive amount considering lifetime/annual limits. */
 
 function calculateIncentiveAmount(
@@ -117,7 +127,11 @@ export function getCountryTaxConfig(country: Country): CountryTaxConfig {
   return COUNTRY_TAX_CONFIGS[country];
 }
 
-/** Calculates Alternative Minimum Tax (AMT) impact for US tax credits. */
+/** Calculates Alternative Minimum Tax (AMT) impact for US tax credits.
+ *
+ * NOTE: This uses simplified heuristics - actual AMT calculations depend on many factors.
+ * The adjustment is an approximation based on standard deduction and typical AMT rates.
+ * @see AMT_STANDARD_DEDUCTION and AMT_ADJUSTMENT_RATE for configurable values. */
 export function calculateAmtImpact(
   country: Country,
   householdIncome: number | undefined,
@@ -132,13 +146,13 @@ export function calculateAmtImpact(
     return { applicable: false };
   }
 
-  const effectiveIncome = householdIncome - 15000;
+  const effectiveIncome = householdIncome - AMT_STANDARD_DEDUCTION;
   if (effectiveIncome < config.amtExemption) {
     return { applicable: false };
   }
 
   if (taxCredits > 0) {
-    const amtAdjustment = taxCredits * 0.1;
+    const amtAdjustment = taxCredits * AMT_ADJUSTMENT_RATE;
     return {
       applicable: true,
       adjustment: amtAdjustment,

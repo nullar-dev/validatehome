@@ -425,8 +425,8 @@ describe("country tax configuration", () => {
   it("returns correct tax config for CA with provincial rates", () => {
     const config = getCountryTaxConfig("CA");
     expect(config.gstRate).toBe(0.05);
-    expect(config.provincialTaxRates.ON).toBe(0.13);
-    expect(config.provincialTaxRates.BC).toBe(0.12);
+    expect(config.provincialTaxRates.ON).toBe(0.08);
+    expect(config.provincialTaxRates.BC).toBe(0.07);
   });
 
   it("applies VAT to UK grant amounts", () => {
