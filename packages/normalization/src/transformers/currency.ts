@@ -236,18 +236,31 @@ const liveRateCache: { data: LiveRateCache | null } = {
 
 function getLiveRatesSync(): LiveRateCache {
   if (liveRateCache.data && liveRateCache.data.expiresAt > new Date()) {
-    return liveRateCache.data;
+    return {
+      rates: { ...liveRateCache.data.rates },
+      lastUpdated: new Date(liveRateCache.data.lastUpdated),
+      expiresAt: new Date(liveRateCache.data.expiresAt),
+    };
   }
 
   const now = new Date();
   const cache: LiveRateCache = {
-    rates: STATIC_RATES,
+    rates: {
+      USD: STATIC_RATES.USD,
+      GBP: STATIC_RATES.GBP,
+      AUD: STATIC_RATES.AUD,
+      CAD: STATIC_RATES.CAD,
+    },
     lastUpdated: now,
     expiresAt: new Date(now.getTime() + CACHE_TTL_MS),
   };
 
   liveRateCache.data = cache;
-  return cache;
+  return {
+    rates: { ...cache.rates },
+    lastUpdated: new Date(cache.lastUpdated),
+    expiresAt: new Date(cache.expiresAt),
+  };
 }
 
 export function getLiveRate(fromCurrency: Currency, toCurrency: Currency): number {
