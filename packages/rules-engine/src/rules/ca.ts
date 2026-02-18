@@ -77,7 +77,7 @@ export const caRules: StackingRule[] = [
     },
   },
   {
-    ruleId: "ca-on- saveonenergy-not-stack-with-federal",
+    ruleId: "ca-on-saveonenergy-not-stack-with-federal",
     jurisdiction: "CA-ON",
     conditions: {
       all: [
@@ -156,6 +156,183 @@ export const caRules: StackingRule[] = [
           "Canada Greener Homes Refund (Canada GREP) pilot can be combined with regular Greener Homes Grant. Canada GREP is additional top-up for early adopters.",
         order: ["program_b", "program_a"],
         source: "NRCan Canada GREP Pilot",
+      },
+    },
+  },
+  {
+    ruleId: "ca-bc-energy-coach-stacks",
+    jurisdiction: "CA-BC",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "BC-ENERGY-COACH" },
+        { fact: "program_b.code", operator: "in", value: ["BC-CLEAN-BC", "GREENER-HOMES-GRANT"] },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "BC Energy Coach program can combine with CleanBC and federal Greener Homes for comprehensive energy upgrades.",
+        order: ["program_a", "program_b"],
+        source: "BC CleanBC",
+      },
+    },
+  },
+  {
+    ruleId: "ca-qc-renoclimat-stacks-with-utility",
+    jurisdiction: "CA-QC",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "QC-RENOCLIMAT" },
+        { fact: "program_b.level", operator: "equal", value: "utility" },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Quebec Rénoclimat can be combined with utility rebates. Apply provincial first, utility may add top-up.",
+        order: ["program_a", "program_b"],
+        source: "Transition Énergétique Québec",
+      },
+    },
+  },
+  {
+    ruleId: "ca-ab-efficiency-programs",
+    jurisdiction: "CA-AB",
+    conditions: {
+      all: [
+        {
+          fact: "program_a.code",
+          operator: "in",
+          value: ["AB-EFFICIENCY", "ENMAX-REBATE", "FORTIS-REBATE"],
+        },
+        { fact: "program_b.code", operator: "equal", value: "GREENER-HOMES-GRANT" },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Alberta efficiency programs and utility rebates can stack with federal Greener Homes Grant.",
+        order: ["program_a", "program_b"],
+        source: "Alberta Utilities",
+      },
+    },
+  },
+  {
+    ruleId: "ca-ns-home-energy",
+    jurisdiction: "CA-NS",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "NS-HOME-ENERGY" },
+        { fact: "program_b.code", operator: "equal", value: "GREENER-HOMES-GRANT" },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Nova Scotia Home Energy Assessment can stack with federal Greener Homes Grant.",
+        order: ["program_a", "program_b"],
+        source: "Nova Scotia Department of Natural Resources",
+      },
+    },
+  },
+  {
+    ruleId: "ca-mb-efficiency",
+    jurisdiction: "CA-MB",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "MB-EFFICIENCY" },
+        { fact: "program_b.level", operator: "in", value: ["federal", "utility"] },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Manitoba Efficiency Programs can combine with federal and utility incentives.",
+        order: ["program_a", "program_b"],
+        source: "Manitoba Hydro",
+      },
+    },
+  },
+  {
+    ruleId: "ca-sk-energy-efficiency",
+    jurisdiction: "CA-SK",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "SK-ENERGY-EFFICIENCY" },
+        {
+          fact: "program_b.code",
+          operator: "in",
+          value: ["GREENER-HOMES-GRANT", "GREENER-HOMES-LOAN"],
+        },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Saskatchewan Energy Efficiency programs can stack with federal Greener Homes.",
+        order: ["program_a", "program_b"],
+        source: "Saskatchewan Ministry of Energy",
+      },
+    },
+  },
+  {
+    ruleId: "ca-nb-energy-savings",
+    jurisdiction: "CA-NB",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "NB-ENERGY-SAVINGS" },
+        { fact: "program_b.code", operator: "in", value: ["GREENER-HOMES-GRANT"] },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation: "New Brunswick Energy Savings can combine with federal Greener Homes Grant.",
+        order: ["program_a", "program_b"],
+        source: "NB Power",
+      },
+    },
+  },
+  {
+    ruleId: "ca-pe-energy-efficient",
+    jurisdiction: "CA-PE",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "PE-ENERGY-EFFICIENT" },
+        { fact: "program_b.code", operator: "equal", value: "GREENER-HOMES-GRANT" },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Prince Edward Island Energy Efficient programs stack with federal incentives.",
+        order: ["program_a", "program_b"],
+        source: "PEI Government",
+      },
+    },
+  },
+  {
+    ruleId: "ca-nl-home-energy",
+    jurisdiction: "CA-NL",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "NL-HOME-ENERGY" },
+        { fact: "program_b.code", operator: "equal", value: "GREENER-HOMES-GRANT" },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation: "Newfoundland Home Energy programs can combine with federal Greener Homes.",
+        order: ["program_a", "program_b"],
+        source: "NLCAN",
       },
     },
   },

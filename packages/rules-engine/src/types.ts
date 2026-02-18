@@ -5,6 +5,9 @@ export interface StackingRule {
   readonly jurisdiction: string;
   readonly conditions: RuleConditions;
   readonly event: RuleEvent;
+  readonly isActive?: boolean;
+  readonly source?: string;
+  readonly sourceUrl?: string;
 }
 
 export interface RuleConditions {
@@ -53,6 +56,6 @@ export interface StackabilityResult {
   readonly explanation: string;
   readonly order?: readonly string[];
   readonly cap?: number | null;
-  readonly reductionPct?: number;
+  readonly reductionPct?: number | null;
   readonly source?: string;
 }

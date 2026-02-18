@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateNetCost } from "../calculate.js";
+import { applyCountryTaxRules, calculateNetCost, getCountryTaxConfig } from "../calculate.js";
 import type { EligibleProgram } from "../types.js";
 
 const makeProgram = (overrides: Partial<EligibleProgram>): EligibleProgram => ({
@@ -367,5 +367,145 @@ describe("golden scenarios - solar", () => {
     const result = calculateNetCost(25000, programs, [], 100000, 12000);
     expect(result.stickerPrice).toBe(25000);
     expect(result.totalSavings).toBe(7500);
+  });
+});
+
+describe("equipment validation helpers", () => {
+  it("handles grant benefit type in explanation", () => {
+    const programs = [
+      makeProgram({
+        benefitType: "grant",
+        maxAmount: 5000,
+      }),
+    ];
+    const result = calculateNetCost(10000, programs);
+    expect(result.incentivesApplied[0]?.explanation).toContain("grant");
+  });
+
+  it("handles loan benefit type in explanation", () => {
+    const programs = [
+      makeProgram({
+        benefitType: "loan",
+        maxAmount: 10000,
+      }),
+    ];
+    const result = calculateNetCost(15000, programs);
+    expect(result.incentivesApplied[0]?.explanation).toContain("loan");
+  });
+
+  it("handles per-unit amount explanation", () => {
+    const programs = [
+      makeProgram({
+        benefitType: "rebate",
+        perUnitAmount: 500,
+      }),
+    ];
+    const result = calculateNetCost(1000, programs);
+    expect(result.incentivesApplied[0]?.explanation).toContain("Per-unit amount");
+  });
+});
+
+describe("country tax configuration", () => {
+  it("returns correct tax config for US", () => {
+    const config = getCountryTaxConfig("US");
+    expect(config.vatRate).toBe(0);
+    expect(config.gstRate).toBe(0);
+  });
+
+  it("returns correct tax config for UK", () => {
+    const config = getCountryTaxConfig("UK");
+    expect(config.vatRate).toBe(0.2);
+  });
+
+  it("returns correct tax config for AU", () => {
+    const config = getCountryTaxConfig("AU");
+    expect(config.gstRate).toBe(0.1);
+  });
+
+  it("returns correct tax config for CA with provincial rates", () => {
+    const config = getCountryTaxConfig("CA");
+    expect(config.gstRate).toBe(0.05);
+    expect(config.provincialTaxRates.ON).toBe(0.13);
+    expect(config.provincialTaxRates.BC).toBe(0.12);
+  });
+
+  it("applies VAT to UK grant amounts", () => {
+    const amount = applyCountryTaxRules(1000, "UK", false);
+    expect(amount).toBe(1200);
+  });
+
+  it("does not apply VAT when vatExempt is true", () => {
+    const amount = applyCountryTaxRules(1000, "UK", true);
+    expect(amount).toBe(1000);
+  });
+
+  it("applies GST to AU amounts", () => {
+    const amount = applyCountryTaxRules(1000, "AU", false);
+    expect(amount).toBe(1100);
+  });
+
+  it("applies GST to CA amounts", () => {
+    const amount = applyCountryTaxRules(1000, "CA", false);
+    expect(amount).toBe(1050);
+  });
+});
+
+describe("annual limit handling", () => {
+  it("restricts amount when approaching annual limit", () => {
+    const programs = [
+      makeProgram({
+        benefitType: "rebate",
+        maxAmount: 5000,
+        annualLimit: 2000,
+      }),
+    ];
+    const usedAmounts = { "test-1": { annualUsed: 1500, lifetimeUsed: 1500 } };
+    const result = calculateNetCost(
+      10000,
+      programs,
+      [],
+      undefined,
+      undefined,
+      "US",
+      undefined,
+      usedAmounts,
+    );
+    expect(result.incentivesApplied[0]?.amount).toBe(500);
+  });
+
+  it("excludes program when annual limit fully exhausted", () => {
+    const programs = [
+      makeProgram({
+        benefitType: "rebate",
+        maxAmount: 5000,
+        annualLimit: 2000,
+      }),
+    ];
+    const usedAmounts = { "test-1": { annualUsed: 2000, lifetimeUsed: 2000 } };
+    const result = calculateNetCost(
+      10000,
+      programs,
+      [],
+      undefined,
+      undefined,
+      "US",
+      undefined,
+      usedAmounts,
+    );
+    expect(result.incentivesApplied).toHaveLength(0);
+  });
+});
+
+describe("calculator input object overload", () => {
+  it("accepts CalculatorInput object directly", () => {
+    const input = {
+      stickerPrice: 10000,
+      programs: [makeProgram({ maxAmount: 2000 })],
+      country: "UK" as const,
+    };
+    const result = calculateNetCost(input);
+    expect(result.stickerPrice).toBe(10000);
+    expect(result.netCost).toBe(8000);
+    expect(result.country).toBe("UK");
   });
 });

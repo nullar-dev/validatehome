@@ -17,7 +17,35 @@ interface StackingRuleInput {
 export type StackingRuleRow = typeof stackingRules.$inferSelect;
 export type NewStackingRule = typeof stackingRules.$inferInsert;
 
-export function stackingRulesRepo(db: DbClient) {
+export interface StackingRulesRepo {
+  findByJurisdiction(jurisdiction: string): Promise<StackingRuleRow[]>;
+  findByJurisdictions(jurisdictions: string[]): Promise<StackingRuleRow[]>;
+  findByRuleId(ruleId: string): Promise<StackingRuleRow | undefined>;
+  findAll(): Promise<StackingRuleRow[]>;
+  findAllActive(): Promise<StackingRuleRow[]>;
+  create(data: NewStackingRule): Promise<StackingRuleRow>;
+  upsert(data: NewStackingRule): Promise<StackingRuleRow>;
+  deactivate(ruleId: string): Promise<void>;
+  bulkUpsert(rules: StackingRuleInput[]): Promise<number>;
+}
+
+export interface ProgramUsageRepo {
+  findByProgramAndSession(
+    programId: string,
+    sessionId: string,
+  ): Promise<ProgramUsageRow | undefined>;
+  upsert(data: NewProgramUsage): Promise<ProgramUsageRow>;
+  getLifetimeUsage(programId: string, sessionId: string): Promise<number>;
+  getAnnualUsage(programId: string, sessionId: string): Promise<number>;
+  addUsage(
+    programId: string,
+    sessionId: string,
+    amount: number,
+    isAnnual?: boolean,
+  ): Promise<ProgramUsageRow>;
+}
+
+export function stackingRulesRepo(db: DbClient): StackingRulesRepo {
   return {
     async findByJurisdiction(jurisdiction: string): Promise<StackingRuleRow[]> {
       return db
@@ -108,7 +136,7 @@ export function stackingRulesRepo(db: DbClient) {
 export type ProgramUsageRow = typeof programUsageTracking.$inferSelect;
 export type NewProgramUsage = typeof programUsageTracking.$inferInsert;
 
-export function programUsageRepo(db: DbClient) {
+export function programUsageRepo(db: DbClient): ProgramUsageRepo {
   return {
     async findByProgramAndSession(
       programId: string,
@@ -153,12 +181,16 @@ export function programUsageRepo(db: DbClient) {
 
     async getLifetimeUsage(programId: string, sessionId: string): Promise<number> {
       const usage = await this.findByProgramAndSession(programId, sessionId);
-      return usage ? parseFloat(usage.lifetimeUsedAmount || "0") : 0;
+      if (!usage?.lifetimeUsedAmount) return 0;
+      const num = usage.lifetimeUsedAmount;
+      return typeof num === "string" ? parseFloat(num) : Number(num);
     },
 
     async getAnnualUsage(programId: string, sessionId: string): Promise<number> {
       const usage = await this.findByProgramAndSession(programId, sessionId);
-      return usage ? parseFloat(usage.annualUsedAmount || "0") : 0;
+      if (!usage?.annualUsedAmount) return 0;
+      const num = usage.annualUsedAmount;
+      return typeof num === "string" ? parseFloat(num) : Number(num);
     },
 
     async addUsage(
@@ -167,6 +199,10 @@ export function programUsageRepo(db: DbClient) {
       amount: number,
       isAnnual: boolean = true,
     ): Promise<ProgramUsageRow> {
+      if (amount < 0) {
+        throw new Error("Amount cannot be negative");
+      }
+
       const currentAnnual = await this.getAnnualUsage(programId, sessionId);
       const currentLifetime = await this.getLifetimeUsage(programId, sessionId);
 

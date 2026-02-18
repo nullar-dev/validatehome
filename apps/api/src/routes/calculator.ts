@@ -1,3 +1,4 @@
+import { createBadRequestProblem } from "@validatehome/shared";
 import { Hono } from "hono";
 
 export const calculatorRoutes = new Hono().get("/", (c) => {
@@ -5,18 +6,22 @@ export const calculatorRoutes = new Hono().get("/", (c) => {
   const category = c.req.query("category");
   const cost = c.req.query("cost");
 
-  if (!zip || !category) {
-    return c.json(
-      {
-        success: false,
-        error: "Missing required parameters: zip, category",
-        code: "MISSING_PARAMS",
-      },
-      400,
-    );
+  if (!zip) {
+    const problem = createBadRequestProblem("Missing required parameter: zip");
+    return c.json(problem, 400);
+  }
+
+  if (!category) {
+    const problem = createBadRequestProblem("Missing required parameter: category");
+    return c.json(problem, 400);
   }
 
   const stickerPrice = cost ? Number(cost) : 0;
+
+  if (Number.isNaN(stickerPrice)) {
+    const problem = createBadRequestProblem("Invalid 'cost' parameter: must be a valid number");
+    return c.json(problem, 400);
+  }
 
   return c.json({
     success: true,

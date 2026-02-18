@@ -3,6 +3,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -43,7 +44,6 @@ export const stackingRules = pgTable(
   },
   (table) => [
     index("stacking_rules_jurisdiction_idx").on(table.jurisdiction),
-    index("stacking_rules_rule_id_idx").on(table.ruleId),
     index("stacking_rules_active_idx").on(table.isActive),
   ],
 );
@@ -54,8 +54,8 @@ export const programUsageTracking = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     programId: text("program_id").notNull(),
     sessionId: text("session_id").notNull(),
-    annualUsedAmount: text("annual_used_amount"),
-    lifetimeUsedAmount: text("lifetime_used_amount"),
+    annualUsedAmount: numeric("annual_used_amount", { precision: 12, scale: 2 }),
+    lifetimeUsedAmount: numeric("lifetime_used_amount", { precision: 12, scale: 2 }),
     lastUpdated: timestamp("last_updated", { withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },

@@ -52,17 +52,29 @@ export async function evaluateStackability(
     };
   }
 
-  const event = events[0];
-  if (!event) {
+  const eventPriority: Record<string, number> = {
+    not_stackable: 3,
+    conditional: 2,
+    stackable: 1,
+  };
+
+  const sortedEvents = [...events].sort((a, b) => {
+    const priorityA = eventPriority[a.type] ?? 0;
+    const priorityB = eventPriority[b.type] ?? 0;
+    return priorityB - priorityA;
+  });
+
+  const highestPriorityEvent = sortedEvents[0];
+  if (!highestPriorityEvent) {
     return {
       canStack: true,
       explanation: "No stacking restrictions found. Programs can be combined.",
     };
   }
 
-  const params = event.params as StackabilityResult;
+  const params = highestPriorityEvent.params as StackabilityResult;
 
-  if (event.type === "not_stackable") {
+  if (highestPriorityEvent.type === "not_stackable") {
     return {
       canStack: false,
       explanation: params.explanation,
@@ -70,12 +82,34 @@ export async function evaluateStackability(
     };
   }
 
+  let reductionPct: number | null = null;
+  let cap: number | null = null;
+  const order: string[] = [];
+  const explanations: string[] = [];
+
+  for (const evt of sortedEvents) {
+    const evtParams = evt.params as StackabilityResult;
+    explanations.push(evtParams.explanation);
+
+    if (evtParams.reductionPct != null) {
+      reductionPct = evtParams.reductionPct;
+    }
+    if (evtParams.cap != null) {
+      cap = evtParams.cap;
+    }
+    if (evtParams.order) {
+      order.push(...evtParams.order);
+    }
+  }
+
+  const uniqueOrder = [...new Set(order)];
+
   return {
-    canStack: event.type === "stackable",
-    explanation: params.explanation,
-    order: params.order,
-    cap: params.cap,
-    reductionPct: params.reductionPct,
+    canStack: highestPriorityEvent.type === "stackable",
+    explanation: explanations.join("; "),
+    order: uniqueOrder.length > 0 ? uniqueOrder : undefined,
+    cap,
+    reductionPct,
     source: params.source,
   };
 }

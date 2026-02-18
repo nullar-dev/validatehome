@@ -1,3 +1,4 @@
+import { createBadRequestProblem } from "@validatehome/shared";
 import { Hono } from "hono";
 
 export const programRoutes = new Hono()
@@ -20,6 +21,11 @@ export const programRoutes = new Hono()
   .get("/:id", (c) => {
     const id = c.req.param("id");
 
+    if (!id || id.length === 0) {
+      const problem = createBadRequestProblem("Program ID is required");
+      return c.json(problem, 400);
+    }
+
     return c.json({
       success: true,
       data: null,
@@ -29,6 +35,11 @@ export const programRoutes = new Hono()
   .get("/:id/history", (c) => {
     const id = c.req.param("id");
 
+    if (!id || id.length === 0) {
+      const problem = createBadRequestProblem("Program ID is required");
+      return c.json(problem, 400);
+    }
+
     return c.json({
       success: true,
       data: [],
@@ -37,6 +48,13 @@ export const programRoutes = new Hono()
   })
   .get("/changes", (c) => {
     const since = c.req.query("since");
+
+    if (since && Number.isNaN(Date.parse(since))) {
+      const problem = createBadRequestProblem(
+        "Invalid 'since' parameter. Must be a valid ISO date string.",
+      );
+      return c.json(problem, 400);
+    }
 
     return c.json({
       success: true,

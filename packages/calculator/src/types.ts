@@ -1,9 +1,12 @@
 import type { BenefitType, Country, Currency } from "@validatehome/shared";
 
+export type GrantType = "rebate" | "grant" | "tax_credit";
+
 export interface EligibleProgram {
   readonly id: string;
   readonly name: string;
   readonly benefitType: BenefitType;
+  readonly grantType?: GrantType;
   readonly maxAmount: number | null;
   readonly percentage: number | null;
   readonly perUnitAmount: number | null;
@@ -17,6 +20,7 @@ export interface EligibleProgram {
   readonly jurisdiction: string;
   readonly isRefundable: boolean;
   readonly vatExempt: boolean;
+  readonly amtApplicable?: boolean;
 }
 
 export interface CalculationResult {
@@ -52,6 +56,13 @@ export interface TaxImpact {
   readonly taxLiabilityAfter: number;
   readonly nonRefundableWarning: boolean;
   readonly nonRefundableAmount: number;
+  readonly amtImpact?: {
+    readonly applicable: boolean;
+    readonly amtAdjustment?: number;
+    readonly regularTaxLiability?: number;
+    readonly amtLiability?: number;
+    readonly warning?: string;
+  };
 }
 
 export interface CalculatorInput {
@@ -77,6 +88,8 @@ export interface CountryTaxConfig {
   readonly gstRate: number;
   readonly hstRate: number;
   readonly provincialTaxRates: Record<string, number>;
+  readonly amtRate?: number;
+  readonly amtExemption?: number;
 }
 
 export const COUNTRY_TAX_CONFIGS: Record<Country, CountryTaxConfig> = {
@@ -85,6 +98,8 @@ export const COUNTRY_TAX_CONFIGS: Record<Country, CountryTaxConfig> = {
     gstRate: 0,
     hstRate: 0,
     provincialTaxRates: {},
+    amtRate: 0.26,
+    amtExemption: 85000,
   },
   UK: {
     vatRate: 0.2,

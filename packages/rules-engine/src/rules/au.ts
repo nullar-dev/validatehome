@@ -48,7 +48,18 @@ export const auRules: StackingRule[] = [
     conditions: {
       all: [
         { fact: "program_a.code", operator: "in", value: ["SOLAR-CREDITS", "FEDERAL-SOLAR"] },
-        { fact: "program_b.code", operator: "in", value: ["FEDERAL-BATTERY", "STATE-BATTERY"] },
+        {
+          fact: "program_b.code",
+          operator: "in",
+          value: [
+            "FEDERAL-BATTERY",
+            "VIC-BATTERY",
+            "NSW-BATTERY",
+            "QLD-BATTERY",
+            "WA-BATTERY",
+            "SA-BATTERY",
+          ],
+        },
       ],
     },
     event: {
@@ -133,6 +144,117 @@ export const auRules: StackingRule[] = [
           "State heat pump water heater rebates can be combined with federal tax incentives. Rebates do not reduce basis for federal claims in Australia.",
         order: ["program_a", "program_b"],
         source: "Australian Tax Office - Energy Incentives",
+      },
+    },
+  },
+  {
+    ruleId: "au-wa-energy-upgrade",
+    jurisdiction: "AU-WA",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "WA-ENERGY-UPGRADE" },
+        { fact: "program_b.code", operator: "in", value: ["SOLAR-CREDITS", "FEDERAL-SOLAR"] },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "WA Energy Upgrade scheme can be combined with federal solar credits. State rebates apply to efficiency measures, federal for solar.",
+        order: ["program_a", "program_b"],
+        source: "WA Energy Minister",
+      },
+    },
+  },
+  {
+    ruleId: "au-sa-home-battery",
+    jurisdiction: "AU-SA",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "SA-HOME-BATTERY" },
+        { fact: "program_b.code", operator: "equal", value: "FEDERAL-BATTERY" },
+      ],
+    },
+    event: {
+      type: "not_stackable",
+      params: {
+        explanation:
+          "South Australia Home Battery scheme cannot be combined with federal battery certificates for the same system.",
+        source: "SA Energy",
+      },
+    },
+  },
+  {
+    ruleId: "au-nsw-energy-savings-stacks-with-solar",
+    jurisdiction: "AU-NSW",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "NSW-ESS" },
+        { fact: "program_b.code", operator: "in", value: ["SOLAR-CREDITS", "FEDERAL-SOLAR"] },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "NSW Energy Savings Scheme (ESS) can be combined with federal Small-scale Technology Certificates (STCs) for solar installations.",
+        order: ["program_a", "program_b"],
+        source: "NSW ESS Administrator",
+      },
+    },
+  },
+  {
+    ruleId: "au-vic-solar-vicsmart",
+    jurisdiction: "AU-VIC",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "VIC-SMARTS" },
+        { fact: "program_b.code", operator: "in", value: ["VIC-SOLAR", "SOLAR-CREDITS"] },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Victoria's VicSmart program can be combined with other solar incentives. VicSmart is for smaller, simpler installations.",
+        source: "Solar Victoria",
+      },
+    },
+  },
+  {
+    ruleId: "au-act-sustainable-household",
+    jurisdiction: "AU-ACT",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "ACT-SUSTAINABLE" },
+        { fact: "program_b.code", operator: "in", value: ["SOLAR-CREDITS", "FEDERAL-SOLAR"] },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "ACT Sustainable Household scheme can be combined with federal solar credits for comprehensive energy upgrades.",
+        order: ["program_a", "program_b"],
+        source: "ACT Environment",
+      },
+    },
+  },
+  {
+    ruleId: "au-nt-energy-advice",
+    jurisdiction: "AU-NT",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "NT-ENERGY-ADVICE" },
+        { fact: "program_b.code", operator: "in", value: ["SOLAR-CREDITS"] },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Northern Territory energy advice andrebates can combine with federal solar certificates.",
+        source: "NT Department of Environment",
       },
     },
   },

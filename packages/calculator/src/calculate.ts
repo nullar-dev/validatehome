@@ -10,6 +10,8 @@ import type {
 } from "./types.js";
 import { COUNTRY_TAX_CONFIGS } from "./types.js";
 
+export const DEFAULT_PHASEOUT_RANGE = 100000;
+
 function calculateIncentiveAmount(
   program: EligibleProgram,
   remainingCost: number,
@@ -47,6 +49,7 @@ function calculateIncomeAdjustedAmount(
   program: EligibleProgram,
   baseAmount: number,
   householdIncome: number,
+  phaseoutRange: number = DEFAULT_PHASEOUT_RANGE,
 ): { amount: number; isCapped: boolean } {
   if (program.incomeCap == null || householdIncome == null || program.incomePhaseoutStart == null) {
     return { amount: baseAmount, isCapped: false };
@@ -56,7 +59,6 @@ function calculateIncomeAdjustedAmount(
     return { amount: baseAmount, isCapped: false };
   }
 
-  const phaseoutRange = 100000;
   const incomeOverCap = householdIncome - program.incomeCap;
   const phaseoutFactor = Math.max(0, 1 - incomeOverCap / phaseoutRange);
   const adjustedAmount = Math.floor(baseAmount * phaseoutFactor);
@@ -94,13 +96,45 @@ export function getCountryTaxConfig(country: Country): CountryTaxConfig {
   return COUNTRY_TAX_CONFIGS[country];
 }
 
+export function calculateAmtImpact(
+  country: Country,
+  householdIncome: number | undefined,
+  taxCredits: number,
+): { applicable: boolean; adjustment?: number; warning?: string } {
+  if (country !== "US" || !householdIncome) {
+    return { applicable: false };
+  }
+
+  const config = getCountryTaxConfig(country);
+  if (!config.amtRate || !config.amtExemption) {
+    return { applicable: false };
+  }
+
+  const effectiveIncome = householdIncome - 15000;
+  if (effectiveIncome < config.amtExemption) {
+    return { applicable: false };
+  }
+
+  if (taxCredits > 0) {
+    const amtAdjustment = taxCredits * 0.1;
+    return {
+      applicable: true,
+      adjustment: amtAdjustment,
+      warning: `You may be subject to AMT. Your tax credits may be reduced by approximately ${formatAmount(amtAdjustment, "USD")} due to AMT calculations. Consult a tax professional.`,
+    };
+  }
+
+  return { applicable: false };
+}
+
 export function applyCountryTaxRules(
   amount: number,
   country: Country,
-  _isRefundable: boolean,
   vatExempt: boolean,
+  grantType?: string,
+  province?: string,
 ): number {
-  if (vatExempt) {
+  if (vatExempt || grantType === "grant") {
     return amount;
   }
 
@@ -115,7 +149,9 @@ export function applyCountryTaxRules(
   }
 
   if (country === "CA") {
-    return amount * (1 + config.gstRate);
+    const provincialRate =
+      province && config.provincialTaxRates?.[province] ? config.provincialTaxRates[province] : 0;
+    return amount * (1 + config.gstRate + provincialRate);
   }
 
   return amount;
@@ -279,6 +315,11 @@ export function calculateNetCost(
     );
   }
 
+  const amtImpact = calculateAmtImpact(inputCountry, householdIncome, totalTaxSavings);
+  if (amtImpact.warning) {
+    disclaimers.push(amtImpact.warning);
+  }
+
   const taxImpact: TaxImpact = {
     totalTaxSavings,
     taxLiabilityBefore: estimatedTaxLiability ?? 0,
@@ -288,6 +329,13 @@ export function calculateNetCost(
       (sum, a) => sum + Math.max(0, a.amount - a.taxSavings),
       0,
     ),
+    amtImpact: amtImpact.applicable
+      ? {
+          applicable: true,
+          amtAdjustment: amtImpact.adjustment,
+          warning: amtImpact.warning,
+        }
+      : undefined,
   };
 
   return {

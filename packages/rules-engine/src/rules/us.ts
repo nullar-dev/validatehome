@@ -136,6 +136,118 @@ export const usFederalRules: StackingRule[] = [
       },
     },
   },
+  {
+    ruleId: "us-wap-stacks-with-federal-credits",
+    jurisdiction: "US",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "WAP" },
+        { fact: "program_b.level", operator: "equal", value: "federal" },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Weatherization Assistance Program (WAP) can be combined with federal tax credits (25C, 25D). WAP covers basic weatherization, tax credits can cover remaining efficiency upgrades.",
+        order: ["program_a", "program_b"],
+        source: "DOE WAP Program Guidance",
+      },
+    },
+  },
+  {
+    ruleId: "us-wap-income-eligibility",
+    jurisdiction: "US",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "WAP" },
+        { fact: "program_a.incomeRestricted", operator: "equal", value: true },
+      ],
+    },
+    event: {
+      type: "conditional",
+      params: {
+        explanation:
+          "WAP has strict income eligibility (typically 200% of federal poverty level). Must verify income at application.",
+        source: "DOE WAP Eligibility Guidelines",
+      },
+    },
+  },
+  {
+    ruleId: "us-her-stacks-with-tax-credits",
+    jurisdiction: "US",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "HER" },
+        { fact: "program_b.level", operator: "equal", value: "federal" },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Home Energy Rebate (HER) programs can be combined with federal tax credits. State rebates apply first, federal credits reduce tax liability.",
+        order: ["program_a", "program_b"],
+        source: "DOE Home Energy Rebate Programs",
+      },
+    },
+  },
+  {
+    ruleId: "us-state-energy-office-grants",
+    jurisdiction: "US",
+    conditions: {
+      all: [
+        { fact: "program_a.level", operator: "equal", value: "state" },
+        { fact: "program_b.level", operator: "equal", value: "federal" },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "State Energy Office grants can typically be combined with federal tax credits. Check specific state program terms.",
+        order: ["program_a", "program_b"],
+        source: "State Energy Office Programs",
+      },
+    },
+  },
+  {
+    ruleId: "us-utility-dr-demands-response",
+    jurisdiction: "US",
+    conditions: {
+      all: [
+        { fact: "program_a.type", operator: "equal", value: "rebate" },
+        { fact: "program_b.type", operator: "equal", value: "tax_credit" },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "Utility Demand Response (DR) programs can be combined with tax credits. DR payments are typically separate from equipment incentives.",
+        source: "Utility DR Program Guidelines",
+      },
+    },
+  },
+  {
+    ruleId: "us-25e-efficient-home-credit",
+    jurisdiction: "US",
+    conditions: {
+      all: [
+        { fact: "program_a.code", operator: "equal", value: "25E" },
+        { fact: "program_b.code", operator: "in", value: ["25C", "25D"] },
+      ],
+    },
+    event: {
+      type: "stackable",
+      params: {
+        explanation:
+          "IRS 25E (Efficient Home Credit) can be combined with 25C and 25D for comprehensive energy efficiency upgrades.",
+        order: ["program_a", "program_b"],
+        source: "IRS Publication 5027",
+      },
+    },
+  },
 ];
 
 export const usStateRules: Record<string, StackingRule[]> = {
