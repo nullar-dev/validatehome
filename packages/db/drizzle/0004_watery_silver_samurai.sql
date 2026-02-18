@@ -1,0 +1,2 @@
+ALTER TABLE "program_usage_tracking" ALTER COLUMN "program_id" SET DATA TYPE uuid;--> statement-breakpoint
+ALTER TABLE "program_usage_tracking" ADD CONSTRAINT "program_usage_tracking_program_id_programs_id_fk" FOREIGN KEY ("program_id") REFERENCES "public"."programs"("id") ON DELETE no action ON UPDATE no action;
