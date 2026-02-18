@@ -57,6 +57,16 @@ describe("checkRobotsPolicy", () => {
     expect(result.reason).toBe("Robots fetch failed, fail-open policy");
   });
 
+  it("fails open with timeout reason when robots request aborts", async () => {
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
+
+    const result = await checkRobotsPolicy("https://example.gov/anything");
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBe("Robots fetch timed out, fail-open policy");
+  });
+
   it("applies disallow only to matching user-agent group", async () => {
     vi.stubGlobal(
       "fetch",
@@ -110,5 +120,21 @@ describe("checkRobotsPolicy", () => {
     expect(wildcardBlocked.allowed).toBe(false);
     expect(anchorBlocked.allowed).toBe(false);
     expect(anchorAllowed.allowed).toBe(true);
+  });
+
+  it("ignores excessively long robots patterns", async () => {
+    const oversizedPattern = `/blocked/${"x".repeat(600)}`;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(["User-agent: *", `Disallow: ${oversizedPattern}`].join("\n"), {
+          status: 200,
+          headers: { "content-type": "text/plain" },
+        }),
+      ),
+    );
+
+    const result = await checkRobotsPolicy(`https://example.gov${oversizedPattern}`);
+    expect(result.allowed).toBe(true);
   });
 });

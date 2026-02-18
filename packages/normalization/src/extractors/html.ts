@@ -29,6 +29,8 @@ interface HtmlExtractorConfig extends ExtractorConfig {
   };
 }
 
+const MAX_SELECTOR_LENGTH = 128;
+
 export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgramData> {
   readonly config: HtmlExtractorConfig = {
     sourceType: "webpage" as const,
@@ -72,9 +74,13 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
       const budget = this.extractBudget(html, selectors.budget);
       const dates = this.extractDates(html, selectors.dates);
       const jurisdiction = this.extractJurisdiction(html, selectors.jurisdiction, source.country);
-      const jurisdictionLevel = this.extractJurisdictionLevel(html, selectors.jurisdiction);
-      const benefits = this.extractBenefits(html, selectors.benefits, source.country);
-      const eligibilityRules = this.extractEligibilityRules(html, selectors.eligibility);
+      const jurisdictionLevel = this.extractJurisdictionLevel(
+        html,
+        selectors.jurisdiction,
+        warnings,
+      );
+      const benefits = this.extractBenefits(html, selectors.benefits, source.country, warnings);
+      const eligibilityRules = this.extractEligibilityRules(html, selectors.eligibility, warnings);
       const categories = this.extractCategories(html);
 
       const hasCriticalErrors = errors.length > 0;
@@ -157,7 +163,8 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
 
     const regex = this.buildSelectorRegex(trimmed, false);
     const match = regex.exec(html);
-    return match?.[1] ? this.stripHtml(match[1]).trim() : null;
+    const content = match ? this.extractMatchContent(match) : null;
+    return content ? this.stripHtml(content).trim() : null;
   }
 
   private extractByDescendantSelector(html: string, selector: string): string | null {
@@ -179,24 +186,30 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
 
   private buildSelectorRegex(selector: string, isGlobal: boolean): RegExp {
     const flag = isGlobal ? "gi" : "i";
+    if (selector.length === 0 || selector.length > MAX_SELECTOR_LENGTH) {
+      return /$a/;
+    }
 
     if (selector.startsWith(".")) {
       const className = this.escapeRegexSpecialChars(selector.slice(1));
       return new RegExp(
-        `<[^>]*class=["'][^"']*\\b${className}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`,
+        `<([a-z][\\w-]*)\\b[^>]*class=["'][^"']*\\b${className}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/\\1>`,
         flag,
       );
     }
 
     if (selector.startsWith("#")) {
       const idName = this.escapeRegexSpecialChars(selector.slice(1));
-      return new RegExp(`<[^>]*id=["']${idName}["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`, flag);
+      return new RegExp(
+        `<([a-z][\\w-]*)\\b[^>]*id=["']${idName}["'][^>]*>([\\s\\S]*?)<\\/\\1>`,
+        flag,
+      );
     }
 
     if (selector.startsWith("[") && selector.endsWith("]")) {
       const attribute = this.escapeRegexSpecialChars(selector.slice(1, -1));
       return new RegExp(
-        `<[^>]*\\b${attribute}(?:=["'][^"']*["'])?[^>]*>([\\s\\S]*?)<\\/[^>]+>`,
+        `<([a-z][\\w-]*)\\b[^>]*\\b${attribute}(?:=["'][^"']*["'])?[^>]*>([\\s\\S]*?)<\\/\\1>`,
         flag,
       );
     }
@@ -221,12 +234,17 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
 
     const matches: string[] = [];
     for (const match of html.matchAll(regex)) {
-      const content = match[1];
+      const content = this.extractMatchContent(match);
       if (typeof content === "string") {
         matches.push(content);
       }
     }
     return matches;
+  }
+
+  private extractMatchContent(match: RegExpExecArray): string | null {
+    const value = match[match.length - 1];
+    return typeof value === "string" ? value : null;
   }
 
   private escapeRegexSpecialChars(str: string): string {
@@ -324,8 +342,15 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
     };
   }
 
-  private extractJurisdictionLevel(html: string, selector: string): ExtractedField {
-    const text = this.extractBySelector(html, selector) ?? this.stripHtml(html);
+  private extractJurisdictionLevel(
+    html: string,
+    selector: string,
+    warnings: string[],
+  ): ExtractedField {
+    const text = this.extractBySelector(html, selector) ?? "";
+    if (!text) {
+      warnings.push("Jurisdiction level selector did not match; defaulting to state");
+    }
     const levelMap: Record<string, string> = {
       federal: "federal",
       state: "state",
@@ -340,8 +365,8 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
     const levelValue = levelMap[level] ?? "state";
     return {
       value: levelValue,
-      confidence: 0.8,
-      rawValue: text,
+      confidence: text ? 0.8 : 0.4,
+      rawValue: text || undefined,
     };
   }
 
@@ -373,8 +398,17 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
     };
   }
 
-  private extractBenefits(html: string, selector: string, country: string): ExtractedBenefit[] {
-    const text = this.extractBySelector(html, selector) ?? this.stripHtml(html);
+  private extractBenefits(
+    html: string,
+    selector: string,
+    country: string,
+    warnings: string[],
+  ): ExtractedBenefit[] {
+    const text = this.extractBySelector(html, selector) ?? "";
+    if (!text) {
+      warnings.push("Benefits selector did not match; skipping benefits extraction");
+      return [];
+    }
     const currency = this.getCurrency(country);
     const benefitMatches = text.split(/[\n,]/).filter((b) => b.trim().length > 0);
 
@@ -406,8 +440,16 @@ export class HtmlExtractor extends BaseExtractor implements Extractor<RawProgram
     return "rebate";
   }
 
-  private extractEligibilityRules(html: string, selector: string): ExtractedEligibilityRule[] {
-    const text = this.extractBySelector(html, selector) ?? this.stripHtml(html);
+  private extractEligibilityRules(
+    html: string,
+    selector: string,
+    warnings: string[],
+  ): ExtractedEligibilityRule[] {
+    const text = this.extractBySelector(html, selector) ?? "";
+    if (!text) {
+      warnings.push("Eligibility selector did not match; skipping eligibility extraction");
+      return [];
+    }
     const rules: ExtractedEligibilityRule[] = [];
 
     const ruleMatches = text.split(/[\n,]/).filter((r) => r.trim().length > 0);

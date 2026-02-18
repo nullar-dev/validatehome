@@ -148,6 +148,27 @@ describe("fetchSourceWithRetry", () => {
     await expect(fetchSource(baseSource)).rejects.toThrow("Fetch blocked by circuit breaker until");
   });
 
+  it("does not open circuit breaker for repeated 4xx responses", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("User-agent: *\nDisallow:", {
+          status: 200,
+          headers: { "content-type": "text/plain" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response("", { status: 404 }))
+      .mockResolvedValueOnce(new Response("", { status: 404 }))
+      .mockResolvedValueOnce(new Response("", { status: 404 }))
+      .mockResolvedValueOnce(new Response("<html>ok</html>", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchSource(baseSource)).rejects.toThrow("Fetch failed with status 404");
+    await expect(fetchSource(baseSource)).rejects.toThrow("Fetch failed with status 404");
+    await expect(fetchSource(baseSource)).rejects.toThrow("Fetch failed with status 404");
+    await expect(fetchSource(baseSource)).resolves.toMatchObject({ statusCode: 200 });
+  });
+
   it("treats timeout as transient", async () => {
     const abortError = new Error("aborted");
     abortError.name = "AbortError";

@@ -8,6 +8,8 @@ interface RobotsCacheEntry {
 }
 
 const CACHE_TTL_MS = 60 * 60 * 1000;
+const ROBOTS_TIMEOUT_MS = 5_000;
+const MAX_ROBOTS_PATTERN_LENGTH = 512;
 const cache = new Map<string, RobotsCacheEntry>();
 
 export function resetRobotsCache(): void {
@@ -15,6 +17,9 @@ export function resetRobotsCache(): void {
 }
 
 function patternToRegex(pattern: string): RegExp {
+  if (pattern.length > MAX_ROBOTS_PATTERN_LENGTH) {
+    return /^$/;
+  }
   const endsWithAnchor = pattern.endsWith("$");
   const basePattern = endsWithAnchor ? pattern.slice(0, -1) : pattern;
   const escaped = basePattern.replaceAll(/[.+?^${}()|[\]\\]/g, "\\$&").replaceAll("*", ".*");
@@ -103,11 +108,14 @@ export async function checkRobotsPolicy(targetUrl: string): Promise<{
   }
 
   const robotsUrl = `${origin}/robots.txt`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ROBOTS_TIMEOUT_MS);
   try {
     const response = await fetch(robotsUrl, {
       headers: {
         "User-Agent": "ValidateHomeBot/1.0 (+https://validatehome.com/bot)",
       },
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -123,8 +131,13 @@ export async function checkRobotsPolicy(targetUrl: string): Promise<{
       allowed: !blocked,
       reason: blocked ? "Blocked by robots" : "Allowed by robots",
     };
-  } catch {
+  } catch (error) {
     cache.set(origin, { fetchedAt: now, rules: { disallow: [] } });
+    if (error instanceof Error && error.name === "AbortError") {
+      return { allowed: true, reason: "Robots fetch timed out, fail-open policy" };
+    }
     return { allowed: true, reason: "Robots fetch failed, fail-open policy" };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

@@ -110,9 +110,30 @@ async function persistDiffs(
   );
 }
 
-async function writeRawHtmlArtifact(filePath: string, content: string): Promise<void> {
-  await mkdir(dirname(filePath), { recursive: true });
-  await writeFile(filePath, content, "utf8");
+async function writeRawHtmlArtifact(
+  traceId: string,
+  sourceId: string,
+  filePath: string,
+  content: string,
+): Promise<void> {
+  try {
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, content, "utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown artifact write error";
+    logStructuredEvent({
+      traceId,
+      sourceId,
+      stage: "artifact",
+      result: "error",
+      details: {
+        reason: "artifact_write_failed",
+        filePath,
+        message,
+      },
+    });
+    throw error;
+  }
 }
 
 async function handleExecutionError(
@@ -205,8 +226,9 @@ export async function executeCrawl(
 
     const contentHash = hashContent(fetched.content);
     const ingestionKey = createIngestionKey(source.id, contentHash, fetched.fetchedAt);
-    const rawHtmlPath = `artifacts/${source.id}/${fetched.fetchedAt.toISOString()}/${contentHash}.html`;
-    await writeRawHtmlArtifact(rawHtmlPath, fetched.content);
+    const safeTimestamp = fetched.fetchedAt.toISOString().replaceAll(/[:]/g, "-");
+    const rawHtmlPath = `artifacts/${source.id}/${safeTimestamp}/${contentHash}.html`;
+    await writeRawHtmlArtifact(traceId, source.id, rawHtmlPath, fetched.content);
 
     const snapshot = await deps.snapshotRepository.createIdempotent({
       sourceId: source.id,

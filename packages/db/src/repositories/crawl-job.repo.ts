@@ -53,7 +53,14 @@ export function crawlJobRepo(db: DbClient): CrawlJobRepository {
     async markRunning(id: string): Promise<CrawlJob> {
       const rows = await db
         .update(crawlJobs)
-        .set({ status: "running", startedAt: new Date(), updatedAt: new Date() })
+        .set({
+          status: "running",
+          startedAt: new Date(),
+          finishedAt: null,
+          errorClass: null,
+          errorMessage: null,
+          updatedAt: new Date(),
+        })
         .where(eq(crawlJobs.id, id))
         .returning();
       const updated = rows[0];

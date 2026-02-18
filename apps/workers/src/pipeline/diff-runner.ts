@@ -61,6 +61,10 @@ function extractHighImpactSignals(content: string): {
 }
 
 export function buildDiffRecords(previous: string, next: string): DiffRecord[] {
+  if (typeof previous !== "string" || typeof next !== "string") {
+    throw new TypeError("buildDiffRecords expects string inputs");
+  }
+
   const textScore = textDiffScore(previous, next);
   const oldSignals = extractHighImpactSignals(previous);
   const newSignals = extractHighImpactSignals(next);

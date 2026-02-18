@@ -178,7 +178,9 @@ export async function fetchSource(source: Source): Promise<FetchResult> {
   }
 
   if (!response.ok) {
-    markHostFailure(parsed.hostname);
+    if (response.status >= 500) {
+      markHostFailure(parsed.hostname);
+    }
     throw new Error(`Fetch failed with status ${response.status}`);
   }
 

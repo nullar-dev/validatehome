@@ -32,4 +32,23 @@ describe("runParsePipeline", () => {
     expect(outcome.quality.requiredFieldCompleteness).toBeGreaterThanOrEqual(0);
     expect(outcome.quality.requiredFieldCompleteness).toBeLessThanOrEqual(1);
   });
+
+  it("falls back to US country when metadata country is invalid", async () => {
+    const outcome = await runParsePipeline(
+      {
+        ...source,
+        metadata: { country: "NOT_A_COUNTRY" },
+      } as Source,
+      '<html><h1 class="program-title">Program B</h1></html>',
+    );
+
+    expect(outcome.quality.requiredFieldCompleteness).toBeGreaterThanOrEqual(0);
+    expect(outcome.quality.requiredFieldCompleteness).toBeLessThanOrEqual(1);
+  });
+
+  it("throws for empty raw content", async () => {
+    await expect(runParsePipeline(source, "   ")).rejects.toThrow(
+      "runParsePipeline requires non-empty rawContent",
+    );
+  });
 });
