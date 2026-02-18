@@ -11,10 +11,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.5.0",
     "@refinedev/antd": "^6.0.3",
     "@refinedev/core": "^5.0.9",
     "@refinedev/react-router": "^2.0.3",
     "@refinedev/simple-rest": "^6.0.1",
+    "@validatehome/rules-engine": "workspace:*",
     "antd": "^6.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

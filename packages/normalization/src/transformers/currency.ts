@@ -8,6 +8,12 @@ export interface ExchangeRate {
   readonly source: string;
 }
 
+export interface LiveRateCache {
+  readonly rates: Readonly<Record<Currency, number>>;
+  readonly lastUpdated: Date;
+  readonly expiresAt: Date;
+}
+
 export interface CurrencyConversionResult {
   readonly originalAmount: string;
   readonly originalCurrency: Currency;
@@ -220,6 +226,69 @@ export class CurrencyConverter {
     const lastEntry = sorted[sorted.length - 1];
     return lastEntry ?? null;
   }
+}
+
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+const liveRateCache: { data: LiveRateCache | null } = {
+  data: null,
+};
+
+function getLiveRatesSync(): LiveRateCache {
+  if (liveRateCache.data && liveRateCache.data.expiresAt > new Date()) {
+    return {
+      rates: { ...liveRateCache.data.rates },
+      lastUpdated: new Date(liveRateCache.data.lastUpdated),
+      expiresAt: new Date(liveRateCache.data.expiresAt),
+    };
+  }
+
+  const now = new Date();
+  const cache: LiveRateCache = {
+    rates: {
+      USD: STATIC_RATES.USD,
+      GBP: STATIC_RATES.GBP,
+      AUD: STATIC_RATES.AUD,
+      CAD: STATIC_RATES.CAD,
+    },
+    lastUpdated: now,
+    expiresAt: new Date(now.getTime() + CACHE_TTL_MS),
+  };
+
+  liveRateCache.data = cache;
+  return {
+    rates: { ...cache.rates },
+    lastUpdated: new Date(cache.lastUpdated),
+    expiresAt: new Date(cache.expiresAt),
+  };
+}
+
+export function getLiveRate(fromCurrency: Currency, toCurrency: Currency): number {
+  if (fromCurrency === toCurrency) {
+    return 1;
+  }
+
+  const cache = getLiveRatesSync();
+  const fromRate = cache.rates[fromCurrency];
+  const toRate = cache.rates[toCurrency];
+
+  if (fromRate && toRate) {
+    return toRate / fromRate;
+  }
+
+  return new CurrencyConverter().getStaticRate(fromCurrency, toCurrency);
+}
+
+export function getLiveRates(): LiveRateCache {
+  return getLiveRatesSync();
+}
+
+export function isCacheValid(): boolean {
+  return liveRateCache.data !== null && liveRateCache.data.expiresAt > new Date();
+}
+
+export function invalidateCache(): void {
+  liveRateCache.data = null;
 }
 
 export const defaultCurrencyConverter = new CurrencyConverter({ useStaticRates: true });

@@ -1,156 +1,172 @@
 # AGENTS.md
 
-Operational guidance for coding agents in this repository.
+Operational guide for agentic coding assistants working in this repository.
 
-## 1) Repo + Toolchain
-- Monorepo managed by `pnpm` workspaces + `turbo`.
-- Node version: `>=22`.
-- PNPM version: `9.15.9` (from `packageManager`).
-- Workspaces: `apps/*`, `packages/*`, and `infra`.
-- Main apps: `@validatehome/api`, `@validatehome/web`, `@validatehome/admin`, `@validatehome/workers`.
-- Main libs: `@validatehome/db`, `@validatehome/shared`, `@validatehome/calculator`, `@validatehome/rules-engine`, `@validatehome/normalization`, `@validatehome/ui`.
+## 1) Repository Overview
+- Monorepo: `pnpm` workspaces + `turbo`.
+- Runtime baseline: Node `>=22`.
+- Package manager: `pnpm` (`9.15.9` in `packageManager`).
+- Workspace globs: `apps/*`, `packages/*`, `infra`.
 
-## 2) Setup
-- Install deps: `pnpm install`.
-- Install hooks: `pnpm prepare` (runs `lefthook install`).
+Primary apps:
+- `@validatehome/web` (Next.js)
+- `@validatehome/api` (Hono)
+- `@validatehome/admin` (Vite/Refine)
+- `@validatehome/workers` (Inngest workers)
 
-## 3) Root Build/Lint/Test Commands
-- Build all: `pnpm build`.
-- Dev (multi-workspace via turbo): `pnpm dev`.
-- Lint all: `pnpm lint`.
-- Lint autofix: `pnpm lint:fix`.
-- Format all: `pnpm format`.
-- Typecheck all: `pnpm typecheck`.
-- Test all: `pnpm test`.
-- Coverage run: `pnpm test:coverage`.
-- Clean outputs: `pnpm clean`.
+Primary packages:
+- `@validatehome/db`
+- `@validatehome/shared`
+- `@validatehome/calculator`
+- `@validatehome/rules-engine`
+- `@validatehome/normalization`
+- `@validatehome/ui`
+
+## 2) Setup Commands
+- Install dependencies: `pnpm install`
+- Install git hooks: `pnpm prepare`
+
+## 3) Root Commands (Build/Lint/Test)
+- Dev all: `pnpm dev`
+- Build all: `pnpm build`
+- Lint all: `pnpm lint`
+- Lint autofix: `pnpm lint:fix`
+- Format all: `pnpm format`
+- Typecheck all: `pnpm typecheck`
+- Test all: `pnpm test`
+- Coverage all: `pnpm test:coverage`
+- Clean artifacts: `pnpm clean`
+
+Recommended pre-PR gate:
+- `pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build`
 
 ## 4) Workspace-Scoped Commands
-- Build one workspace: `pnpm --filter @validatehome/api build`.
-- Typecheck one workspace: `pnpm --filter @validatehome/web typecheck`.
-- Test one workspace: `pnpm --filter @validatehome/db test`.
-- Coverage one workspace: `pnpm --filter @validatehome/shared test:coverage`.
-- Dev one workspace: `pnpm --filter @validatehome/workers dev`.
+- Build one package: `pnpm --filter @validatehome/db build`
+- Typecheck one app: `pnpm --filter @validatehome/workers typecheck`
+- Test one package: `pnpm --filter @validatehome/calculator test`
+- Coverage one package: `pnpm --filter @validatehome/db test:coverage`
 
-Turbo filters are also valid from root scripts:
-- `pnpm test --filter=@validatehome/calculator`
+Turbo filtering from root scripts is also valid:
+- `pnpm test --filter=@validatehome/workers`
 - `pnpm typecheck --filter=@validatehome/api`
 
 ## 5) Running a Single Test (Important)
-Use Vitest args after `--`.
+Vitest args must come after `--`.
 
 - Single file:
-  - `pnpm --filter @validatehome/calculator test -- src/__tests__/calculate.test.ts`
+  - `pnpm --filter @validatehome/workers test -- src/__tests__/security.test.ts`
+  - `pnpm --filter @validatehome/db test -- src/__tests__/repo-factories.test.ts`
+
 - Single test by name (`-t`):
+  - `pnpm --filter @validatehome/workers test -- -t "blocks private ipv6 ranges"`
   - `pnpm --filter @validatehome/calculator test -- -t "returns zero when sticker price is <= 0"`
-- Single file in API app:
-  - `pnpm --filter @validatehome/api test -- src/**/*.test.ts`
-- Single file in DB package:
-  - `pnpm --filter @validatehome/db test -- src/__tests__/repositories.test.ts`
 
-Notes:
-- Most tests live under `src/__tests__/` with `*.test.ts`.
-- Shared Vitest defaults are in `packages/config/vitest.shared.ts`.
-- Shared coverage threshold is 80% (lines/branches/functions/statements).
+- Pattern in package:
+  - `pnpm --filter @validatehome/workers test -- src/**/*.test.ts`
 
-## 6) App/Package Script Notes
-- `@validatehome/api`: `dev`, `build`, `start`, `typecheck`, `test`, `test:coverage`.
-- `@validatehome/web`: `dev` (Next on 3000), `build`, `start`, `typecheck`, tests.
-- `@validatehome/admin`: `dev` (Vite on 3001), `build`, `preview`, `typecheck` (no test script).
-- `@validatehome/workers`: `dev`, `build`, `start`, `typecheck`, tests.
-- `@validatehome/db`: plus `db:generate`, `db:migrate`, `db:push`, `db:studio`, `db:seed`.
+Test layout defaults:
+- Typical location: `src/__tests__/`
+- File names: `*.test.ts` or `*.spec.ts`
+- Shared Vitest defaults: `packages/config/vitest.shared.ts`
 
-## 7) Formatting + Imports (Biome)
+## 6) Notable Workspace Scripts
+- `@validatehome/workers`:
+  - `crawl:source`, `crawl:due`, `sources:pilot`, `sources:reset`, `sources:deactivate`
+  - `replay:dlq`, `drill:resilience`, `benchmark:diff`, `report:kpis`
+- `@validatehome/db`:
+  - `db:generate`, `db:migrate`, `db:push`, `db:studio`, `db:seed`, `db:check`
+
+## 7) Formatting and Import Rules
 Source of truth: `biome.json`.
 
 - Indentation: 2 spaces.
 - Max line width: 100.
-- Quote style: double quotes.
-- Semicolons: always.
-- Trailing commas: all in JS/TS, none in JSON.
-- Import organization is enabled.
-- Use type-only imports (`import type`) where applicable (`useImportType` is error).
-- Remove unused imports/variables (both error-level).
-- Avoid non-null assertions (`!`) unless necessary (warn-level rule).
+- Quotes: double quotes.
+- Semicolons: required.
+- Trailing commas: enabled for JS/TS; disabled for JSON.
+- Import sorting/organization: enabled.
+- Use `import type` where possible (`useImportType` enforced).
+- Unused imports/variables: disallowed.
+- Avoid non-null assertions (`!`) unless unavoidable.
 
-Import path conventions observed in codebase:
-- ESM modules are used (`"type": "module"`).
-- Relative TS imports typically include `.js` extension (preserve this style).
-- Prefer explicit module boundaries via package exports where available.
+Import style in this repo:
+- ESM modules (`"type": "module"`).
+- Relative TS imports usually include `.js` extension; preserve this convention.
+- Prefer package exports over deep ad-hoc relative paths when available.
 
-## 8) TypeScript Rules
-Source of truth: `packages/config/tsconfig.base.json` and derivatives.
+## 8) TypeScript Guidelines
+Source of truth: `packages/config/tsconfig.base.json` (+ derivatives).
 
-- `strict: true`.
-- `noUncheckedIndexedAccess: true`.
-- `noUnusedLocals: true` and `noUnusedParameters: true`.
-- `verbatimModuleSyntax: true`.
-- `isolatedModules: true`.
-- Prefer precise unions/literal types for domain values.
+- `strict: true`
+- `noUncheckedIndexedAccess: true`
+- `noUnusedLocals: true`, `noUnusedParameters: true`
+- `verbatimModuleSyntax: true`
+- `isolatedModules: true`
+
+Coding expectations:
 - Prefer explicit return types on exported functions in core libs.
-- Avoid `any` (warn-level rule); if unavoidable, keep narrowly scoped.
-- Favor `readonly` fields in API/shared data contracts.
+- Prefer narrow unions/literals for domain values.
+- Keep `any` narrowly scoped; avoid introducing new broad `any`.
+- Prefer readonly fields in shared/domain contracts.
 
 ## 9) Naming Conventions
-- Functions/variables: `camelCase`.
-- Types/interfaces/components: `PascalCase`.
-- Global constants: `UPPER_SNAKE_CASE`.
-- Domain string values: usually `snake_case` literals (example: `tax_credit`, `coming_soon`).
-- Repository files often use `*.repo.ts` naming.
-- Test files: `*.test.ts` (or `*.spec.ts`).
-- Barrel exports are common via `src/index.ts`.
+- Variables/functions: `camelCase`
+- Types/interfaces/components: `PascalCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Domain literals: `snake_case` (e.g., `policy_blocked`, `coming_soon`)
+- Repository file names: `*.repo.ts`
 
-## 10) Error Handling Guidelines
-- Prefer guard clauses for invalid input/state.
-- Throw `Error` for invariant/integrity failures (e.g., expected DB return missing).
-- Return `undefined` for "not found" repository reads when that is the existing API contract.
-- In HTTP handlers, return structured JSON with explicit success/error fields.
+## 10) Error Handling Rules
+- Use guard clauses for invalid input and invalid state.
+- Throw explicit `Error` for invariants/data integrity failures.
+- Return `undefined` for not-found reads when API contract expects it.
+- In HTTP handlers, return structured responses with explicit error fields.
 - Do not silently swallow errors.
-- Avoid broad catch blocks unless you rethrow or map to a clear response.
+- If catching, rethrow or emit clear telemetry/context.
 
-## 11) Testing Conventions
-- Framework: Vitest.
-- Shared defaults:
+## 11) Testing and Coverage Expectations
+- Test framework: Vitest.
+- Shared defaults include:
   - `globals: true`
   - `environment: "node"`
   - include: `src/**/*.test.ts`, `src/**/*.spec.ts`
   - exclude: `node_modules`, `dist`
   - `passWithNoTests: true`
-- DB package has extra coverage excludes for schema/config style files.
-- Keep tests near source under `src/__tests__/`.
+- Coverage threshold baseline is 80% (lines/branches/functions/statements).
 
-## 12) Git Hooks + Commit Rules
-- Pre-commit hook runs:
-  - `pnpm biome check --no-errors-on-unmatched {staged_files}`
-  - `pnpm typecheck` for TS changes
-- Commit message must follow conventional commits.
-- Accepted types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`.
+When changing behavior:
+- Add/adjust tests in touched packages.
+- Prefer deterministic unit tests over fragile timing-based tests.
+
+## 12) Git Hooks and Commit Rules
+- Lefthook pre-commit runs Biome checks and TypeScript typecheck.
+- Commit messages must be Conventional Commits.
+- Common allowed types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`.
 
 ## 13) CI Expectations
-CI runs Node 22 and expects:
-- Lint passes.
-- Typecheck passes.
-- Tests and coverage pass.
-- Security checks (`gitleaks`, `pnpm audit`) pass.
-- Full build passes.
+CI validates:
+- Lint
+- Typecheck
+- Tests and coverage
+- Security checks (`gitleaks`, `pnpm audit`)
+- Full build
 
-Recommended local preflight before opening PR:
-- `pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build`
+Agents should avoid merging assumptions without passing local equivalents when feasible.
 
 ## 14) Agent Working Style
-- Make focused, minimal diffs.
-- Follow existing architecture and naming over introducing new patterns.
-- Update/add tests when behavior changes.
-- Do not change package manager, Node baseline, or core toolchain unless asked.
-- Prefer workspace-filtered commands during iteration for speed.
+- Make minimal, targeted diffs.
+- Follow established patterns before introducing new abstractions.
+- Keep behavior changes and test updates together.
+- Avoid toolchain changes unless explicitly requested.
+- Use workspace filtering during iteration for faster feedback loops.
 
-## 15) Cursor/Copilot Rule Files
-Checked locations requested by user:
+## 15) Cursor and Copilot Rule Files
+Checked paths:
 - `.cursorrules`
 - `.cursor/rules/`
 - `.github/copilot-instructions.md`
 
-Result:
-- No Cursor or Copilot instruction files were found in this repository.
+Current status:
+- No Cursor/Copilot rule files were found in this repository.
 
-If these files are added later, treat them as high-priority repository instructions.
+If these files are added later, treat them as high-priority instructions and update this file.

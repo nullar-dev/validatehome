@@ -38,6 +38,14 @@ export {
   stackabilityRepo,
 } from "./stackability.repo.js";
 export {
+  type NewProgramUsage,
+  type NewStackingRule,
+  type ProgramUsageRow,
+  programUsageRepo,
+  type StackingRuleRow,
+  stackingRulesRepo,
+} from "./stacking-rules.repo.js";
+export {
   type DbClient,
   type PaginatedResult,
   type PaginationOptions,

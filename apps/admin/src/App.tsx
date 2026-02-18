@@ -5,6 +5,7 @@ import dataProvider from "@refinedev/simple-rest";
 import { App as AntdApp, ConfigProvider } from "antd";
 import { BrowserRouter, Route, Routes } from "react-router";
 import "@refinedev/antd/dist/reset.css";
+import { RulesList, RuleTester } from "./components/rules";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000/v1";
 
@@ -51,11 +52,21 @@ export function App() {
                 name: "api-keys",
                 list: "/api-keys",
               },
+              {
+                name: "rules",
+                list: "/rules",
+              },
+              {
+                name: "rules-tester",
+                list: "/rules-tester",
+              },
             ]}
           >
             <Routes>
               <Route element={<ThemedLayout Title={AppTitle} />}>
                 <Route index element={<DashboardPage />} />
+                <Route path="rules" element={<RulesList />} />
+                <Route path="rules-tester" element={<RuleTester />} />
               </Route>
             </Routes>
           </Refine>
