@@ -86,24 +86,30 @@ export function stackingRulesRepo(db: DbClient): StackingRulesRepo {
     },
 
     async upsert(data: NewStackingRule): Promise<StackingRuleRow> {
-      const existing = await this.findByRuleId(data.ruleId);
-      if (existing) {
-        const rows = await db
-          .update(stackingRules)
-          .set({
+      const rows = await db
+        .insert(stackingRules)
+        .values({
+          ...data,
+          version: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: stackingRules.ruleId,
+          set: {
             ...data,
-            version: existing.version + 1,
+            version: 1,
             updatedAt: new Date(),
-          })
-          .where(eq(stackingRules.ruleId, data.ruleId))
-          .returning();
-        const updated = rows[0];
-        if (!updated) {
-          throw new Error(`Failed to update stacking rule: ${data.ruleId}`);
-        }
-        return updated;
+          },
+          where: eq(stackingRules.isActive, true),
+        })
+        .returning();
+
+      const result = rows[0];
+      if (!result) {
+        throw new Error(`Failed to upsert stacking rule: ${data.ruleId}`);
       }
-      return this.create(data);
+      return result;
     },
 
     async deactivate(ruleId: string): Promise<void> {

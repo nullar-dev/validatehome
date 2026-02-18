@@ -117,13 +117,9 @@ export const caRules: StackingRule[] = [
     ruleId: "ca-alberta-utilities-can-stack",
     jurisdiction: "CA-AB",
     conditions: {
-      any: [
-        {
-          all: [
-            { fact: "program_a.level", operator: "equal", value: "utility" },
-            { fact: "program_b.code", operator: "notEqual", value: "GREENER-HOMES-GRANT" },
-          ],
-        },
+      all: [
+        { fact: "program_a.level", operator: "equal", value: "utility" },
+        { fact: "program_b.code", operator: "notEqual", value: "GREENER-HOMES-GRANT" },
       ],
     },
     event: {

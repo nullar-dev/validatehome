@@ -65,7 +65,7 @@ export interface TaxImpact {
   };
 }
 
-export interface CalculatorInput {
+export interface NetCostCalculatorInput {
   readonly stickerPrice: number;
   readonly programs: readonly EligibleProgram[];
   readonly stackingNotes?: readonly string[];
@@ -84,9 +84,18 @@ export interface ProgramUsageAmounts {
 }
 
 export interface CountryTaxConfig {
+  /** VAT rate (UK standard rate = 0.20) */
   readonly vatRate: number;
+  /** GST rate (Canada federal = 0.05, Australia = 0.10) */
   readonly gstRate: number;
+  /** HST rate (only used for Canada federal, provinces use GST + provincial) */
   readonly hstRate: number;
+  /**
+   * Provincial tax rates (Canada only).
+   * These are PROVINCIAL-ONLY rates (not total HST).
+   * Total tax = gstRate + provincialTaxRates[province]
+   * Example: Ontario total = 0.05 (GST) + 0.08 (provincial) = 0.13 HST
+   */
   readonly provincialTaxRates: Record<string, number>;
   readonly amtRate?: number;
   readonly amtExemption?: number;

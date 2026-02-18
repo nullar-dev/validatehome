@@ -9,9 +9,9 @@ export interface ExchangeRate {
 }
 
 export interface LiveRateCache {
-  rates: Record<Currency, number>;
-  lastUpdated: Date;
-  expiresAt: Date;
+  readonly rates: Readonly<Record<Currency, number>>;
+  readonly lastUpdated: Date;
+  readonly expiresAt: Date;
 }
 
 export interface CurrencyConversionResult {
@@ -250,7 +250,7 @@ function getLiveRatesSync(): LiveRateCache {
   return cache;
 }
 
-export async function getLiveRate(fromCurrency: Currency, toCurrency: Currency): Promise<number> {
+export function getLiveRate(fromCurrency: Currency, toCurrency: Currency): number {
   if (fromCurrency === toCurrency) {
     return 1;
   }

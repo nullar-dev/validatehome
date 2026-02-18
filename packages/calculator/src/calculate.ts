@@ -2,9 +2,9 @@ import type { Country, Currency } from "@validatehome/shared";
 import type {
   AppliedIncentive,
   CalculationResult,
-  CalculatorInput,
   CountryTaxConfig,
   EligibleProgram,
+  NetCostCalculatorInput,
   ProgramUsageAmounts,
   TaxImpact,
 } from "./types.js";
@@ -64,6 +64,23 @@ function calculateIncomeAdjustedAmount(
   const adjustedAmount = Math.floor(baseAmount * phaseoutFactor);
 
   return { amount: Math.max(0, adjustedAmount), isCapped: phaseoutFactor < 1 };
+}
+
+function calculatePreCapAmount(program: EligibleProgram, remainingCost: number): number {
+  let amount = 0;
+
+  if (program.percentage != null) {
+    amount = Math.floor(remainingCost * (program.percentage / 100));
+    if (program.maxAmount != null) {
+      amount = Math.min(amount, program.maxAmount);
+    }
+  } else if (program.maxAmount != null) {
+    amount = program.maxAmount;
+  } else if (program.perUnitAmount != null) {
+    amount = program.perUnitAmount;
+  }
+
+  return Math.max(0, Math.min(amount, remainingCost));
 }
 
 function buildExplanation(program: EligibleProgram, amount: number): string {
@@ -157,7 +174,7 @@ export function applyCountryTaxRules(
   return amount;
 }
 
-export function calculateNetCost(input: CalculatorInput): CalculationResult;
+export function calculateNetCost(input: NetCostCalculatorInput): CalculationResult;
 export function calculateNetCost(
   stickerPrice: number,
   programs: readonly EligibleProgram[],
@@ -170,7 +187,7 @@ export function calculateNetCost(
 ): CalculationResult;
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Calculator requires comprehensive logic
 export function calculateNetCost(
-  stickerPriceOrInput: number | CalculatorInput,
+  stickerPriceOrInput: number | NetCostCalculatorInput,
   programs?: readonly EligibleProgram[],
   stackingNotes: readonly string[] = [],
   householdIncomeInput?: number,
@@ -179,7 +196,7 @@ export function calculateNetCost(
   sessionId?: string,
   usedAmounts?: ProgramUsageAmounts,
 ): CalculationResult {
-  let input: CalculatorInput;
+  let input: NetCostCalculatorInput;
 
   if (typeof stickerPriceOrInput === "object") {
     input = stickerPriceOrInput;
@@ -247,6 +264,7 @@ export function calculateNetCost(
     let amount = calculateIncentiveAmount(program, remainingCost, used);
     if (amount <= 0) continue;
 
+    const preCapAmount = calculatePreCapAmount(program, remainingCost);
     const incomeAdjusted = calculateIncomeAdjustedAmount(program, amount, householdIncome ?? 0);
     amount = incomeAdjusted.amount;
 
@@ -266,10 +284,10 @@ export function calculateNetCost(
     const hitsIncomeCap = incomeAdjusted.isCapped;
     const hitsLifetimeLimit =
       program.lifetimeLimit != null &&
-      (used?.[program.id]?.lifetimeUsed ?? 0) + amount > program.lifetimeLimit;
+      (used?.[program.id]?.lifetimeUsed ?? 0) + preCapAmount > program.lifetimeLimit;
     const hitsAnnualLimit =
       program.annualLimit != null &&
-      (used?.[program.id]?.annualUsed ?? 0) + amount > program.annualLimit;
+      (used?.[program.id]?.annualUsed ?? 0) + preCapAmount > program.annualLimit;
 
     applied.push({
       programId: program.id,
@@ -284,7 +302,9 @@ export function calculateNetCost(
       hitsAnnualLimit,
     });
 
-    remainingCost -= amount;
+    const deductionAmount =
+      program.benefitType === "tax_credit" && !program.isRefundable ? effectiveAmount : amount;
+    remainingCost -= deductionAmount;
   }
 
   const netCost = Math.max(0, remainingCost);

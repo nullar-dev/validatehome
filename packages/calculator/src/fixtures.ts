@@ -177,7 +177,7 @@ export const AU_SOLAR_FIXTURE: EligibleProgram[] = [
     id: "au-stcs-2026",
     name: "Small-scale Technology Certificates",
     benefitType: "rebate",
-    maxAmount: null,
+    maxAmount: 2500,
     percentage: null,
     perUnitAmount: null,
     incomeCap: null,
