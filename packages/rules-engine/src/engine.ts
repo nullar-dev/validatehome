@@ -22,15 +22,25 @@ export async function evaluateStackability(
 ): Promise<StackabilityResult> {
   const facts = {
     "program_a.id": programA.id,
+    "program_a.name": programA.name,
     "program_a.type": programA.type,
     "program_a.level": programA.level,
     "program_a.code": programA.code,
     "program_a.jurisdiction": programA.jurisdiction,
+    "program_a.incomeRestricted": programA.incomeRestricted,
+    "program_a.installationDate": programA.installationDate,
+    "program_a.replacesExisting": programA.replacesExisting,
+    "program_a.category": programA.category,
     "program_b.id": programB.id,
+    "program_b.name": programB.name,
     "program_b.type": programB.type,
     "program_b.level": programB.level,
     "program_b.code": programB.code,
     "program_b.jurisdiction": programB.jurisdiction,
+    "program_b.incomeRestricted": programB.incomeRestricted,
+    "program_b.installationDate": programB.installationDate,
+    "program_b.replacesExisting": programB.replacesExisting,
+    "program_b.category": programB.category,
   };
 
   const { events } = await engine.run(facts);
@@ -56,6 +66,7 @@ export async function evaluateStackability(
     return {
       canStack: false,
       explanation: params.explanation,
+      source: params.source,
     };
   }
 
@@ -65,5 +76,6 @@ export async function evaluateStackability(
     order: params.order,
     cap: params.cap,
     reductionPct: params.reductionPct,
+    source: params.source,
   };
 }

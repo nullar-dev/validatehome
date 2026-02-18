@@ -8,6 +8,12 @@ export interface ExchangeRate {
   readonly source: string;
 }
 
+export interface LiveRateCache {
+  rates: Record<Currency, number>;
+  lastUpdated: Date;
+  expiresAt: Date;
+}
+
 export interface CurrencyConversionResult {
   readonly originalAmount: string;
   readonly originalCurrency: Currency;
@@ -220,6 +226,56 @@ export class CurrencyConverter {
     const lastEntry = sorted[sorted.length - 1];
     return lastEntry ?? null;
   }
+}
+
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+const liveRateCache: { data: LiveRateCache | null } = {
+  data: null,
+};
+
+function getLiveRatesSync(): LiveRateCache {
+  if (liveRateCache.data && liveRateCache.data.expiresAt > new Date()) {
+    return liveRateCache.data;
+  }
+
+  const now = new Date();
+  const cache: LiveRateCache = {
+    rates: STATIC_RATES,
+    lastUpdated: now,
+    expiresAt: new Date(now.getTime() + CACHE_TTL_MS),
+  };
+
+  liveRateCache.data = cache;
+  return cache;
+}
+
+export async function getLiveRate(fromCurrency: Currency, toCurrency: Currency): Promise<number> {
+  if (fromCurrency === toCurrency) {
+    return 1;
+  }
+
+  const cache = getLiveRatesSync();
+  const fromRate = cache.rates[fromCurrency];
+  const toRate = cache.rates[toCurrency];
+
+  if (fromRate && toRate) {
+    return toRate / fromRate;
+  }
+
+  return new CurrencyConverter().getStaticRate(fromCurrency, toCurrency);
+}
+
+export function getLiveRates(): LiveRateCache {
+  return getLiveRatesSync();
+}
+
+export function isCacheValid(): boolean {
+  return liveRateCache.data !== null && liveRateCache.data.expiresAt > new Date();
+}
+
+export function invalidateCache(): void {
+  liveRateCache.data = null;
 }
 
 export const defaultCurrencyConverter = new CurrencyConverter({ useStaticRates: true });

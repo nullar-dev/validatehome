@@ -7,4 +7,5 @@ export * from "./geo.js";
 export * from "./jurisdiction.js";
 export * from "./notification.js";
 export * from "./program.js";
+export * from "./stacking.js";
 export * from "./verification.js";

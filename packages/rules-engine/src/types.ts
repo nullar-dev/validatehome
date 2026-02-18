@@ -8,15 +8,17 @@ export interface StackingRule {
 }
 
 export interface RuleConditions {
-  readonly all?: readonly RuleCondition[];
-  readonly any?: readonly RuleCondition[];
+  readonly all?: readonly RuleConditionNode[];
+  readonly any?: readonly RuleConditionNode[];
 }
 
 export interface RuleCondition {
   readonly fact: string;
   readonly operator: "equal" | "notEqual" | "greaterThan" | "lessThan" | "in" | "notIn";
-  readonly value: string | number | readonly string[];
+  readonly value: string | number | boolean | readonly string[];
 }
+
+export type RuleConditionNode = RuleCondition | RuleConditions;
 
 export interface RuleEvent {
   readonly type: "stackable" | "not_stackable" | "conditional";
@@ -25,6 +27,7 @@ export interface RuleEvent {
     readonly order?: readonly string[];
     readonly cap?: number | null;
     readonly reductionPct?: number;
+    readonly source?: string;
   };
 }
 
@@ -37,6 +40,12 @@ export interface ProgramFact {
   readonly maxAmount?: number;
   readonly percentage?: number;
   readonly jurisdiction: string;
+  readonly incomeRestricted?: boolean;
+  readonly installationDate?: string;
+  readonly replacesExisting?: boolean;
+  readonly category?: string;
+  readonly annualLimit?: number;
+  readonly lifetimeLimit?: number;
 }
 
 export interface StackabilityResult {
@@ -45,4 +54,5 @@ export interface StackabilityResult {
   readonly order?: readonly string[];
   readonly cap?: number | null;
   readonly reductionPct?: number;
+  readonly source?: string;
 }

@@ -103,8 +103,8 @@ Last updated: 2026-02-17
 | 1 | Crawl/parse pipeline for initial US/UK/AU/CA targets | DONE_FULL | Source discovery, scheduler, fetch policies, parse orchestration, retries, DLQ/replay, idempotent ingestion implemented | None |
 | 2 | Screenshot-diff engine + significance scoring | DONE_FULL | Deterministic text/semantic/visual diff paths with significance scoring + benchmark command implemented | None |
 | 3 | Normalization pipeline raw -> canonical + multi-currency | IN_PROGRESS | Canonical schema + repos complete | Extraction/mapping, validation/confidence, currency strategy |
-| 4 | Stacker logic for US/UK/AU/CA | IN_PROGRESS | Rules engine package exists | Country rule packs, explainability payload, conflict tests |
-| 5 | Net-cost calculator for all 4 countries (heat pumps + solar first) | IN_PROGRESS | Calculator package exists | Live normalized inputs, tax nuances, parity fixtures |
+| 4 | Stacker logic for US/UK/AU/CA | IN_PROGRESS | Rules engine package exists | US: 25C/25D/state rules + income phaseouts; UK: BUS/ECO4 exclusion; AU: Solar Credits; CA: Greener Homes; Rule DB + golden tests |
+| 5 | Net-cost calculator for all 4 countries (heat pumps + solar first) | IN_PROGRESS | Calculator package exists | Live DB inputs, tax credit nuance (non-refundable vs rebate), income caps, lifetime tracking, country VAT/GST nuances, live currency rates |
 | 6 | Program status pages (SSG/ISR + structured data + hreflang) | NOT_STARTED | Next.js scaffold exists | URL taxonomy, freshness policy, schema markup, i18n SEO validation |
 | 7 | Admin diff review + program editor | NOT_STARTED | Admin scaffold exists | Review queue, approval flow, override validation, audit log |
 | 8 | Meilisearch integration | NOT_STARTED | Architecture selected | Indexing jobs, faceting/search API, reindex recovery |
@@ -257,9 +257,33 @@ Status: `IN_PROGRESS`
 
 Tasks:
 
-- Encode baseline stack rules for US/UK/AU/CA.
-- Conflict detection + explanation payload.
-- Golden tests per country.
+**US Federal/State/Utility Rules:**
+- IRS 25C (Heat Pumps): $2,000/year max, non-refundable tax credit, cannot stack with some state rebates
+- IRS 25D (Solar): 30% through 2032, non-refundable, cannot stack with some utility rebates
+- State rebate stackability rules (CA, NY, MA examples)
+- Income phaseout rules (enhanced credits phase out at higher incomes)
+
+**UK Rules:**
+- BUS (Boiler Upgrade Scheme): £7,500 grant, cannot combine with ECO4 for same measure
+- ECO4: Cannot stack with BUS, income-based eligibility
+- Great British Insulation Scheme: Different eligibility from BUS/ECO4
+- Local authority variations
+
+**AU Rules:**
+- Solar Credits: Multiplier phasing down (1.0 → 0.8 → 0.6 → 0.4 → 0.2)
+- State battery programs: Various state-specific stackability
+- Energy efficient equipment eligibility
+
+**CA Rules:**
+- Greener Homes: Loan + grant combination rules
+- Provincial utility rebates: Vary by province/utility
+- Federal + provincial stacking rules
+
+**Implementation:**
+- Rule repository + DB storage with versioning
+- Explanation payloads with canonical source citations
+- Golden tests per country with deterministic inputs
+- Equipment eligibility validation (COP ratings, panel efficiency)
 
 Definition of Done:
 
@@ -272,9 +296,29 @@ Status: `IN_PROGRESS`
 
 Tasks:
 
-- Connect normalized incentives to calculator.
-- Roll out by category (heat pumps + solar first).
-- Add country tax nuances and edge guards.
+**Calculator Enhancements:**
+- Connect normalized incentives to calculator (live DB inputs)
+- Tax credit vs rebate distinction:
+  - Rebate: Direct payment, reduces cost immediately
+  - Tax Credit: Reduces tax liability, shown as both "effective savings" and "tax impact"
+  - Non-refundable credit handling: Show tax liability limit warning
+- Income cap calculations with phaseout display
+- Lifetime limit tracking (simple in-memory session)
+- Annual limit tracking
+
+**Country Tax Nuances:**
+- US: Federal credits + state tax treatment, AMT considerations
+- UK: VAT treatment on grants vs rebates
+- AU: GST on rebates, taxable income implications
+- CA: GST/HST handling, provincial tax treatment
+
+**Category Rollout (Heat Pumps + Solar First):**
+- Heat pump category: COP rating validation, efficiency thresholds
+- Solar category: System size limits, panel efficiency requirements
+
+**Currency & Live Data:**
+- Live currency rate fetching with weekly cache refresh
+- Historical rate handling for audit trail
 
 Definition of Done:
 
