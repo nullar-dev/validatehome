@@ -22,6 +22,15 @@
     "db:generate": "turbo run db:generate --filter=@validatehome/db",
     "db:migrate": "turbo run db:migrate --filter=@validatehome/db",
     "db:push": "turbo run db:push --filter=@validatehome/db",
+    "crawl:due": "turbo run crawl:due --filter=@validatehome/workers",
+    "crawl:source": "turbo run crawl:source --filter=@validatehome/workers",
+    "sources:pilot": "turbo run sources:pilot --filter=@validatehome/workers",
+    "sources:reset": "turbo run sources:reset --filter=@validatehome/workers",
+    "sources:deactivate": "turbo run sources:deactivate --filter=@validatehome/workers",
+    "replay:dlq": "turbo run replay:dlq --filter=@validatehome/workers",
+    "drill:resilience": "turbo run drill:resilience --filter=@validatehome/workers",
+    "benchmark:diff": "turbo run benchmark:diff --filter=@validatehome/workers",
+    "report:kpis": "turbo run report:kpis --filter=@validatehome/workers",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

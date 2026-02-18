@@ -10,11 +10,22 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "crawl:source": "tsx src/scripts/crawl-source.ts",
+    "crawl:due": "tsx src/scripts/crawl-due.ts",
+    "sources:pilot": "tsx src/scripts/setup-pilot-sources.ts",
+    "sources:reset": "tsx src/scripts/reset-source-state.ts",
+    "sources:deactivate": "tsx src/scripts/deactivate-source.ts",
+    "replay:dlq": "tsx src/scripts/replay-dlq.ts",
+    "drill:resilience": "tsx src/scripts/drill-resilience.ts",
+    "benchmark:diff": "tsx src/scripts/benchmark-diff.ts",
+    "report:kpis": "tsx src/scripts/report-kpis.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@validatehome/db": "workspace:*",
+    "@validatehome/normalization": "workspace:*",
     "@validatehome/shared": "workspace:*",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.6.16",
     "inngest": "^3.27.6"
   },

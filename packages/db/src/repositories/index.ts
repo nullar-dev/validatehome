@@ -1,6 +1,17 @@
 export { type ApiKey, apiKeyRepo, type NewApiKey } from "./api-key.repo.js";
 export { type Benefit, benefitRepo, type NewBenefit } from "./benefit.repo.js";
 export {
+  type CrawlDlqEntry,
+  crawlDlqRepo,
+  type NewCrawlDlqEntry,
+} from "./crawl-dlq.repo.js";
+export {
+  type CrawlJob,
+  type CrawlJobRepository,
+  crawlJobRepo,
+  type NewCrawlJob,
+} from "./crawl-job.repo.js";
+export {
   type CrawlSnapshot,
   crawlSnapshotRepo,
   type NewCrawlSnapshot,
@@ -20,7 +31,7 @@ export {
   type ProgramVersion,
   programRepo,
 } from "./program.repo.js";
-export { type NewSource, type Source, sourceRepo } from "./source.repo.js";
+export { type NewSource, type Source, sourceRepo, type UpdateSource } from "./source.repo.js";
 export {
   type NewStackabilityConstraint,
   type StackabilityConstraint,
