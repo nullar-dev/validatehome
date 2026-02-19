@@ -6,6 +6,11 @@ import { App as AntdApp, ConfigProvider } from "antd";
 import { BrowserRouter, Route, Routes } from "react-router";
 import "@refinedev/antd/dist/reset.css";
 import { RulesList, RuleTester } from "./components/rules";
+import { DiffList } from "./pages/diffs/list";
+import { ProgramCreate } from "./pages/programs/create";
+import { ProgramEdit } from "./pages/programs/edit";
+import { ProgramList } from "./pages/programs/list";
+import { ProgramShow } from "./pages/programs/show";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000/v1";
 
@@ -37,16 +42,17 @@ export function App() {
                 list: "/programs",
                 show: "/programs/:id",
                 edit: "/programs/:id/edit",
-              },
-              {
-                name: "sources",
-                list: "/sources",
-                show: "/sources/:id",
+                create: "/programs/create",
               },
               {
                 name: "diffs",
                 list: "/diffs",
                 show: "/diffs/:id",
+              },
+              {
+                name: "sources",
+                list: "/sources",
+                show: "/sources/:id",
               },
               {
                 name: "api-keys",
@@ -65,6 +71,11 @@ export function App() {
             <Routes>
               <Route element={<ThemedLayout Title={AppTitle} />}>
                 <Route index element={<DashboardPage />} />
+                <Route path="programs" element={<ProgramList />} />
+                <Route path="programs/create" element={<ProgramCreate />} />
+                <Route path="programs/:id" element={<ProgramShow />} />
+                <Route path="programs/:id/edit" element={<ProgramEdit />} />
+                <Route path="diffs" element={<DiffList />} />
                 <Route path="rules" element={<RulesList />} />
                 <Route path="rules-tester" element={<RuleTester />} />
               </Route>

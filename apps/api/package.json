@@ -19,6 +19,7 @@
     "@validatehome/db": "workspace:*",
     "@validatehome/rules-engine": "workspace:*",
     "@validatehome/shared": "workspace:*",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.6.16",
     "zod": "^4.3.6"
   },

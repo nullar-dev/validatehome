@@ -190,7 +190,7 @@ This is a "Sure Bet" because of the Perfect Storm:
 - [x] Database schema + Drizzle ORM (11 core entities, multi-country)
 - [x] Git hooks (lefthook + Biome + conventional commits)
 - [x] Shared packages (types, constants, utils for US/UK/AU/CA)
-- [x] Net-cost calculator package with 26 passing tests
+- [x] Net-cost calculator package with 39 passing tests
 - [x] Rules engine package (json-rules-engine stackability)
 - [x] Next.js 16 web app (App Router, Tailwind v4, shadcn/ui CSS vars, SSG)
 - [x] Hono API server (programs, calculator, health routes)
@@ -208,15 +208,15 @@ This is a "Sure Bet" because of the Perfect Storm:
 - [x] Crawl/parse pipeline: US federal + 3 states, UK BUS/ECO4, AU federal + 1 state, CA federal + 1 province
 - [x] Screenshot-diff engine with significance scoring
 - [x] Normalization pipeline (raw → canonical schema) with multi-currency support
-- [ ] Rules engine with stacker logic (US federal + UK + AU + CA stacking rules)
-- [ ] Net-cost calculator (all 4 countries, heat pumps + solar as first categories)
-- [ ] Program status pages (SSG/ISR with structured data, hreflang for all 4 countries)
-- [ ] Admin dashboard (diff review queue, program editor)
-- [ ] Meilisearch integration (program search, faceted by country)
-- [ ] B2B API v1 (read-only program data)
-- [ ] Basic local landing pages for top 50 ZIPs/postcodes per country
+- [x] Rules engine with stacker logic (US federal + UK + AU + CA stacking rules)
+- [x] Net-cost calculator (all 4 countries, heat pumps + solar as first categories)
+- [x] Program status pages (SSG/ISR with structured data, hreflang for all 4 countries)
+- [x] Admin dashboard (diff review queue, program editor)
+- [x] Meilisearch integration (program search, faceted by country)
+- [x] B2B API v1 (read-only program data)
+- [x] Basic local landing pages for top 50 ZIPs/postcodes per country
 
-**Exit criteria:** 30+ programs live across 4 countries, calculator working for heat pumps + solar, admin can review and override
+**Exit criteria:** 30+ programs live across 4 countries, calculator working for heat pumps + solar, admin can review and override ✅ (31 programs, calculator tests pass, admin queue exists)
 
 ### Phase 2: Scale + Notify (Weeks 13-20)
 

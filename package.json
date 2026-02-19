@@ -31,6 +31,8 @@
     "drill:resilience": "turbo run drill:resilience --filter=@validatehome/workers",
     "benchmark:diff": "turbo run benchmark:diff --filter=@validatehome/workers",
     "report:kpis": "turbo run report:kpis --filter=@validatehome/workers",
+    "e2e:smoke": "playwright test e2e/smoke.spec.ts",
+    "e2e:accessibility": "playwright test e2e/accessibility.spec.ts",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

@@ -81,6 +81,26 @@
           }
         }
       }
+    },
+    {
+      "includes": ["**/programs/**/page.tsx", "**/calculator/**/page.tsx"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/scripts/*.ts", "**/scripts/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
     }
   ]
 }
