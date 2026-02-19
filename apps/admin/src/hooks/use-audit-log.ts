@@ -1,4 +1,4 @@
-import { getStoredApiKey } from "../auth-provider";
+import { getStoredApiKey } from "../auth-provider.js";
 
 export type AuditAction =
   | "program.create"

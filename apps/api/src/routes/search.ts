@@ -8,9 +8,12 @@ import {
 import { Hono } from "hono";
 import { db } from "../db.js";
 
+/** MeiliSearch host URL from environment or default localhost */
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST ?? "http://localhost:7700";
+/** MeiliSearch API key from environment */
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY;
 
+/** Search routes providing program search via MeiliSearch */
 export const searchRoutes = new Hono()
   .get("/", async (c) => {
     const q = c.req.query("q") ?? "";

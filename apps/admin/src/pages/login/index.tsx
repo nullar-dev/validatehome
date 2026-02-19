@@ -2,7 +2,7 @@ import type { FormProps } from "antd";
 import { Button, Card, Form, Input, message } from "antd";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { AUTH_STORAGE_KEY, getStoredApiKey } from "../../auth-provider";
+import { AUTH_STORAGE_KEY, getStoredApiKey } from "../../auth-provider.js";
 
 interface LoginFormValues {
   apiKey: string;

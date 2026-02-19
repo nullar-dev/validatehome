@@ -1,5 +1,5 @@
 import { DatePicker, Form, Input, InputNumber, Select } from "antd";
-import { CURRENCY_FORMATTER, STATUS_OPTIONS } from "../../constants/program";
+import { CURRENCY_FORMATTER, STATUS_OPTIONS } from "../../constants/program.js";
 
 type ProgramFormFieldsProps = {
   isCreate?: boolean;

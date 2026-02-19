@@ -1,5 +1,5 @@
-export { RuleEditor } from "./RuleEditor";
-export { RuleHistory } from "./RuleHistory";
-export { RuleImportExport } from "./RuleImportExport";
-export { RulesList } from "./RulesList";
-export { RuleTester } from "./RuleTester";
+export { RuleEditor } from "./RuleEditor.js";
+export { RuleHistory } from "./RuleHistory.js";
+export { RuleImportExport } from "./RuleImportExport.js";
+export { RulesList } from "./RulesList.js";
+export { RuleTester } from "./RuleTester.js";

@@ -3,11 +3,21 @@ import { desc, eq, sql } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import { db } from "../db.js";
 
+/** JSON record type for flexible object handling */
 type JsonRecord = Record<string, unknown>;
+/** Review action type for diff approval/rejection */
 type ReviewAction = "approved" | "rejected";
+/** Status filter for diff queries */
 type DiffStatusFilter = "pending" | "approved" | "rejected";
+/** UUID validation pattern */
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Converts a string value to a positive integer, returning a fallback for invalid input.
+ * @param value - The string value to convert
+ * @param fallback - The fallback value if conversion fails
+ * @returns A positive integer or the fallback value
+ */
 function toPositiveInt(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -16,6 +26,11 @@ function toPositiveInt(value: string | undefined, fallback: number): number {
   return Math.max(Math.trunc(parsed), 1);
 }
 
+/**
+ * Parses a status filter query parameter into a valid DiffStatusFilter.
+ * @param value - The query parameter value to parse
+ * @returns A valid DiffStatusFilter or null if invalid/not provided
+ */
 function getStatusFilter(value: string | undefined): DiffStatusFilter | null {
   if (!value) {
     return null;
