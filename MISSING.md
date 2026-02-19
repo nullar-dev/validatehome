@@ -12,11 +12,11 @@ A comprehensive list of best practices and enhancements not yet implemented in t
 | ---------------- | ----------: | ------: | ----: |
 | API Design       |          14 |       9 |    23 |
 | Next.js Frontend |          10 |      11 |    21 |
-| Security         |           7 |       4 |    11 |
+| Security         |           7 |       6 |    13 |
 | Reliability      |           6 |       3 |     9 |
-| DevOps           |           4 |       4 |     8 |
+| DevOps           |           4 |       6 |    10 |
 | Documentation    |           2 |       3 |     5 |
-| **TOTAL**        |      **43** |  **34** | **77** |
+| **TOTAL**        |      **43** |  **38** | **81** |
 
 ---
 
@@ -195,9 +195,45 @@ Documented procedures for:
 
 ---
 
+### 9. RBAC Refinement (Admin)
+
+**Category:** Security
+**Status:** ❌ Not Implemented
+**Priority:** HIGH
+
+**Description:**
+Refine role-based access control in admin application:
+
+- Define granular permissions (view, edit, approve, delete)
+- Add role assignment UI
+- Implement permission checks on mutations
+- Audit logging for admin actions
+
+**Cost:** $0 (free to implement)
+
+---
+
+### 10. Full E2E Smoke Test Run in CI
+
+**Category:** DevOps
+**Status:** ❌ Not Implemented
+**Priority:** HIGH
+
+**Description:**
+Add comprehensive E2E smoke tests to CI pipeline:
+
+- Run Playwright tests against production-like server in CI
+- Cover critical user flows (search, program view, calculator)
+- Parallelize for faster execution
+- Include accessibility assertions
+
+**Cost:** $0 (already using Playwright)
+
+---
+
 ## ⚡ Phase 2: High Priority (Session 2)
 
-### 9. OpenTelemetry Integration
+### 11. OpenTelemetry Integration
 
 **Category:** Next.js Frontend
 **Status:** ❌ Not Implemented
@@ -216,7 +252,7 @@ Distributed tracing for debugging production issues.
 
 ---
 
-### 10. Image Optimization Config
+### 12. Image Optimization Config
 
 **Category:** Next.js Frontend
 **Status:** ❌ Not Implemented
@@ -247,7 +283,7 @@ export default defineNextConfig({
 
 ---
 
-### 11. Environment Validation
+### 13. Environment Validation
 
 **Category:** Security
 **Status:** ❌ Not Implemented
@@ -276,7 +312,7 @@ export const env = envSchema.parse(process.env);
 
 ---
 
-### 12. CSP Headers
+### 14. CSP Headers
 
 **Category:** Security
 **Status:** ❌ Not Implemented
@@ -289,7 +325,7 @@ Content Security Policy headers for XSS protection.
 
 ---
 
-### 13. Middleware Setup
+### 15. Middleware Setup
 
 **Category:** Next.js Frontend
 **Status:** ❌ Not Implemented
@@ -310,7 +346,7 @@ Edge middleware for:
 
 ---
 
-### 14. Server Actions
+### 16. Server Actions
 
 **Category:** Next.js Frontend
 **Status:** ❌ Not Implemented
@@ -323,7 +359,7 @@ Use Server Actions for form submissions instead of API routes.
 
 ---
 
-### 15. Loading States
+### 17. Loading States
 
 **Category:** Next.js Frontend
 **Status:** ❌ Not Implemented
@@ -338,7 +374,7 @@ Add loading.tsx for route-based loading states.
 
 ## 📦 Phase 3: Medium Priority (Session 3)
 
-### 16. HATEOAS - Hypermedia Links
+### 18. HATEOAS - Hypermedia Links
 
 **Category:** API Design
 **Status:** ❌ Not Implemented
@@ -351,7 +387,7 @@ Add `_links` to API responses for HATEOAS compliance.
 
 ---
 
-### 17. Async Operations (202 Accepted)
+### 19. Async Operations (202 Accepted)
 
 **Category:** API Design
 **Status:** ❌ Not Implemented
@@ -364,7 +400,7 @@ For long-running operations, return 202 with Location header for polling.
 
 ---
 
-### 18. Bulk Operations
+### 20. Bulk Operations
 
 **Category:** API Design
 **Status:** ❌ Not Implemented
@@ -377,7 +413,7 @@ Batch endpoints for multiple updates.
 
 ---
 
-### 19. Graceful Deprecation (Sunset Headers)
+### 21. Graceful Deprecation (Sunset Headers)
 
 **Category:** API Design
 **Status:** ❌ Not Implemented
@@ -390,7 +426,7 @@ Add Deprecation and Sunset headers to API responses.
 
 ---
 
-### 20. HTTP Caching (ETag/Last-Modified)
+### 22. HTTP Caching (ETag/Last-Modified)
 
 **Category:** API Design
 **Status:** ❌ Not Implemented
@@ -403,7 +439,7 @@ Implement conditional requests for GET endpoints.
 
 ---
 
-### 21. Secrets Rotation
+### 23. Secrets Rotation
 
 **Category:** DevOps
 **Status:** ❌ Not Implemented
@@ -420,7 +456,7 @@ Rotate API keys and database credentials automatically.
 
 ---
 
-### 22. Database Migration Strategy
+### 24. Database Migration Strategy
 
 **Category:** DevOps
 **Status:** ⚠️ Partial
@@ -433,7 +469,7 @@ Add migration rollback procedures and zero-downtime migrations.
 
 ---
 
-### 23. API Changelog
+### 25. API Changelog
 
 **Category:** Documentation
 **Status:** ❌ Not Implemented
@@ -448,7 +484,7 @@ Maintain CHANGELOG.md with API changes.
 
 ## 🎯 Phase 4: Low Priority (Session 4)
 
-### 24. Field Selection (?fields=)
+### 26. Field Selection (?fields=)
 
 **Category:** API Design
 **Status:** ❌ Not Implemented
@@ -461,7 +497,7 @@ Allow clients to select specific fields to reduce payload.
 
 ---
 
-### 25. Media Type Versioning
+### 27. Media Type Versioning
 
 **Category:** API Design
 **Status:** ❌ Not Implemented
@@ -474,7 +510,7 @@ Accept header-based API versioning.
 
 ---
 
-### 26. Content Negotiation
+### 28. Content Negotiation
 
 **Category:** API Design
 **Status:** ❌ Not Implemented
@@ -487,7 +523,7 @@ Support multiple response formats (JSON, XML).
 
 ---
 
-### 27. Route Groups
+### 29. Route Groups
 
 **Category:** Next.js Frontend
 **Status:** ❌ Not Implemented
@@ -500,7 +536,7 @@ Use (group) folders for route organization.
 
 ---
 
-### 28. Parallel Routes
+### 30. Parallel Routes
 
 **Category:** Next.js Frontend
 **Status:** ❌ Not Implemented
@@ -513,7 +549,7 @@ Advanced routing for modals/dialogs.
 
 ---
 
-### 29. Intercepting Routes
+### 31. Intercepting Routes
 
 **Category:** Next.js Frontend
 **Status:** ❌ Not Implemented
@@ -526,7 +562,7 @@ Intercept routes for nested UI patterns.
 
 ---
 
-### 30. Draft Mode
+### 32. Draft Mode
 
 **Category:** Next.js Frontend
 **Status:** ❌ Not Implemented
@@ -539,7 +575,7 @@ Preview mode for CMS content.
 
 ---
 
-### 31. Feature Flags
+### 33. Feature Flags
 
 **Category:** Security
 **Status:** ❌ Not Implemented
@@ -556,7 +592,7 @@ Gradual rollout system.
 
 ---
 
-### 32. Postman Collection
+### 34. Postman Collection
 
 **Category:** Documentation
 **Status:** ❌ Not Implemented
@@ -569,7 +605,7 @@ Export API specs for API consumers.
 
 ---
 
-### 33. ADRs (Architecture Decision Records)
+### 35. ADRs (Architecture Decision Records)
 
 **Category:** Documentation
 **Status:** ❌ Not Implemented
@@ -582,7 +618,7 @@ Document architectural decisions.
 
 ---
 
-### 34. Deployment Strategy
+### 36. Deployment Strategy
 
 **Category:** DevOps
 **Status:** ❌ Not Implemented
@@ -611,6 +647,8 @@ Blue/green or canary deployments.
 - [ ] Database backup procedures
 - [ ] Circuit breaker (API)
 - [ ] Disaster recovery runbook
+- [ ] RBAC refinement in admin
+- [ ] Full E2E smoke test run in CI
 
 ### Session 2 (High - ~2 hours)
 

@@ -135,8 +135,7 @@ export async function syncProgramsToSearch(): Promise<{ indexed: number; errors:
   const benefitMap = new Map<string, Benefit[]>();
   for (const row of benefitRows) {
     const current = benefitMap.get(row.programId) ?? [];
-    current.push(row as Benefit);
-    benefitMap.set(row.programId, current);
+    benefitMap.set(row.programId, [...current, row as Benefit]);
   }
 
   const documents: ProgramDocument[] = [];

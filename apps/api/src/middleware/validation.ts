@@ -8,12 +8,14 @@ export function validateBody<T extends z.ZodType>(schema: T) {
       const result = schema.safeParse(body);
 
       if (!result.success) {
+        const traceId = c.get("traceId") as string | undefined;
         return c.json(
           {
             type: "https://validatehome.com/errors/validation",
             title: "Validation Error",
             status: 400,
             detail: "Request body validation failed",
+            traceId,
             errors: result.error.issues.map((issue) => ({
               path: issue.path.join("."),
               message: issue.message,
@@ -26,12 +28,14 @@ export function validateBody<T extends z.ZodType>(schema: T) {
       c.set("validatedBody", result.data);
       await next();
     } catch {
+      const traceId = c.get("traceId") as string | undefined;
       return c.json(
         {
           type: "https://validatehome.com/errors/invalid-json",
           title: "Invalid JSON",
           status: 400,
           detail: "Request body is not valid JSON",
+          traceId,
         },
         400,
       );
@@ -45,12 +49,14 @@ export function validateQuery<T extends z.ZodType>(schema: T) {
     const result = schema.safeParse(query);
 
     if (!result.success) {
+      const traceId = c.get("traceId") as string | undefined;
       return c.json(
         {
           type: "https://validatehome.com/errors/validation",
           title: "Validation Error",
           status: 400,
           detail: "Query parameter validation failed",
+          traceId,
           errors: result.error.issues.map((issue) => ({
             path: issue.path.join("."),
             message: issue.message,
