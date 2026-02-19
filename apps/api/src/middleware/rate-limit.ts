@@ -70,8 +70,13 @@ export function rateLimitMiddleware(config: RateLimitConfig = {}) {
 
   return async (c: Context, next: () => Promise<void>): Promise<void> => {
     const apiKey = c.get("apiKey") as { id?: string } | undefined;
-    const key =
-      apiKey?.id ?? c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "anonymous";
+    let clientIp = c.req.header("x-real-ip") ?? "anonymous";
+    const forwardedFor = c.req.header("x-forwarded-for");
+    if (forwardedFor) {
+      const ips = forwardedFor.split(",").map((ip) => ip.trim());
+      clientIp = ips[0] ?? clientIp;
+    }
+    const key = apiKey?.id ?? clientIp;
 
     const record = await incrementRateLimit(key, windowMs);
     const now = Date.now();

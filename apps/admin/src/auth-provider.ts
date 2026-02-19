@@ -1,6 +1,6 @@
 import type { AuthProvider } from "@refinedev/core";
 
-const AUTH_STORAGE_KEY = "validatehome_admin_api_key";
+export const AUTH_STORAGE_KEY = "validatehome_admin_api_key";
 
 export const authProvider: AuthProvider = {
   login: async ({ apiKey }) => {

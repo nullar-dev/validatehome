@@ -2,7 +2,7 @@ import type { FormProps } from "antd";
 import { Button, Card, Form, Input, message } from "antd";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { getStoredApiKey } from "../../auth-provider";
+import { AUTH_STORAGE_KEY, getStoredApiKey } from "../../auth-provider";
 
 interface LoginFormValues {
   apiKey: string;
@@ -26,7 +26,7 @@ export function LoginPage() {
       });
 
       if (response.ok) {
-        localStorage.setItem("validatehome_admin_api_key", values.apiKey);
+        localStorage.setItem(AUTH_STORAGE_KEY, values.apiKey);
         message.success("Logged in successfully");
         navigate("/");
       } else {
