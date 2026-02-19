@@ -71,11 +71,7 @@ export default async function CalculatorPage({ params }: Props) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
-      />
+      <script type="application/ld+json">{safeJsonLd(jsonLd)}</script>
       <main className="mx-auto max-w-4xl px-4 py-12">
         <nav className="mb-8 flex gap-2 text-sm">
           <a href="/" className="text-muted-foreground hover:underline">

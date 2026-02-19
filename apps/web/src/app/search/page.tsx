@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SearchBox } from "../../components/search/search-box";
 
 export const metadata: Metadata = {
@@ -31,13 +32,13 @@ export default function SearchPage() {
             { code: "au", name: "Australia" },
             { code: "ca", name: "Canada" },
           ].map((country) => (
-            <a
+            <Link
               key={country.code}
               href={`/programs/${country.code}`}
               className="rounded-lg border p-4 text-center hover:bg-muted"
             >
               {country.name}
-            </a>
+            </Link>
           ))}
         </div>
       </section>

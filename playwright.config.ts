@@ -18,7 +18,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm --filter @validatehome/web dev",
+    command: process.env.CI
+      ? "pnpm --filter @validatehome/web build && pnpm --filter @validatehome/web start"
+      : "pnpm --filter @validatehome/web dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },

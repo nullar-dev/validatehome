@@ -18,7 +18,7 @@ interface Program {
   benefits?: Array<{ type: string; maxAmount?: string; description?: string }>;
 }
 
-const statusColors: Record<string, string> = {
+const STATUS_COLORS: Record<string, string> = {
   open: "green",
   waitlist: "orange",
   reserved: "blue",
@@ -55,7 +55,7 @@ export function ProgramShow(_props: IResourceComponentsProps) {
         <Descriptions.Item label="ID">{program.id}</Descriptions.Item>
         <Descriptions.Item label="Slug">{program.slug}</Descriptions.Item>
         <Descriptions.Item label="Status">
-          <Tag color={statusColors[program.status] ?? "default"}>{program.status}</Tag>
+          <Tag color={STATUS_COLORS[program.status] ?? "default"}>{program.status}</Tag>
         </Descriptions.Item>
         <Descriptions.Item label="Jurisdiction">
           {program.jurisdiction?.name ?? "Unknown"}

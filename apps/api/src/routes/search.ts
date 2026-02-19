@@ -1,8 +1,15 @@
-import type { CountryCode, Program } from "@validatehome/db";
+import type { Program } from "@validatehome/db";
 import { jurisdictionRepo, programRepo } from "@validatehome/db";
-import { createBadRequestProblem } from "@validatehome/shared";
+import {
+  createBadRequestProblem,
+  createMeilisearchClient,
+  searchPrograms,
+} from "@validatehome/shared";
 import { Hono } from "hono";
 import { db } from "../db.js";
+
+const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST ?? "http://localhost:7700";
+const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY;
 
 export const searchRoutes = new Hono()
   .get("/", async (c) => {
@@ -27,54 +34,50 @@ export const searchRoutes = new Hono()
     }
 
     try {
-      const filters: {
-        country?: CountryCode;
-        status?: "open" | "waitlist" | "reserved" | "funded" | "closed" | "coming_soon";
-      } = {};
+      const client = createMeilisearchClient({
+        host: MEILISEARCH_HOST,
+        apiKey: MEILISEARCH_API_KEY,
+      });
 
+      const filters: string[] = [];
       if (country) {
-        filters.country = country.toUpperCase() as CountryCode;
+        filters.push(`country = "${country.toUpperCase()}"`);
       }
       if (status) {
-        filters.status = status as typeof filters.status;
+        filters.push(`status = "${status}"`);
+      }
+      if (category) {
+        filters.push(`categories = "${category}"`);
       }
 
-      const repo = programRepo(db);
-      const shouldFilterByQuery = q.trim().length > 0;
-      const result = await repo.findAll(
-        filters,
-        shouldFilterByQuery ? { page: 1, limit: 1000 } : { page, limit },
+      const results = await searchPrograms(
+        client,
+        {
+          query: q,
+          limit,
+          offset: (page - 1) * limit,
+          filter: filters.length > 0 ? filters : undefined,
+        },
+        "programs",
       );
-      const programs: Program[] = Array.isArray(result) ? result : result.data;
 
-      let filtered = programs;
-
-      if (q) {
-        const searchLower = q.toLowerCase();
-        filtered = filtered.filter(
-          (p) =>
-            p.name.toLowerCase().includes(searchLower) ||
-            (p.description?.toLowerCase().includes(searchLower) ?? false),
-        );
-      }
-
-      const paged = shouldFilterByQuery
-        ? filtered.slice((page - 1) * limit, page * limit)
-        : filtered;
-
-      const jurisdictionRepoFn = jurisdictionRepo(db);
-      const withJurisdiction = await Promise.all(
-        paged.map(async (p) => {
-          const j = await jurisdictionRepoFn.findById(p.jurisdictionId);
-          return { ...p, jurisdiction: j };
-        }),
-      );
+      const normalized = results.hits.map((hit) => ({
+        id: hit.id,
+        name: hit.name,
+        slug: hit.slug,
+        description: hit.description,
+        status: hit.status,
+        jurisdiction: {
+          name: hit.jurisdiction,
+          country: hit.country,
+        },
+      }));
 
       return c.json({
         success: true,
-        data: withJurisdiction,
+        data: normalized,
         meta: {
-          total: filtered.length,
+          total: results.totalHits,
           page,
           limit,
           filters: { q, country, status, category },
@@ -122,15 +125,23 @@ export const searchRoutes = new Hono()
     }
 
     try {
-      const repo = programRepo(db);
-      const result = await repo.findAll({}, { page: 1, limit: 10 });
-      const programs: Program[] = Array.isArray(result) ? result : result.data;
-
-      const searchLower = q.toLowerCase();
-      const suggestions = programs
-        .filter((p) => p.name.toLowerCase().includes(searchLower))
-        .slice(0, 5)
-        .map((p) => ({ id: p.id, name: p.name, slug: p.slug }));
+      const client = createMeilisearchClient({
+        host: MEILISEARCH_HOST,
+        apiKey: MEILISEARCH_API_KEY,
+      });
+      const results = await searchPrograms(
+        client,
+        {
+          query: q,
+          limit: 5,
+        },
+        "programs",
+      );
+      const suggestions = results.hits.map((hit) => ({
+        id: hit.id,
+        name: hit.name,
+        slug: hit.slug,
+      }));
 
       return c.json({ success: true, data: suggestions });
     } catch {

@@ -414,7 +414,7 @@ Definition of Done:
 - Functional: faceted search by country/category/status/jurisdiction.
 - Hard gates: index freshness SLO + health check verified.
 
-### 1E.2 B2B API v1 (read-only)
+### 1E.2 B2B API v1 (read-write)
 
 Status: `DONE_FULL` ✅
 
@@ -429,7 +429,7 @@ Implementation (2026-02-19):
 
 Definition of Done:
 
-- Functional: stable read-only endpoints with key-based access.
+- Functional: stable read/write endpoints with key-based access.
 - Hard gates: OWASP API controls and abuse protections validated.
 - Hard gates: error-contract conformance tests pass.
 

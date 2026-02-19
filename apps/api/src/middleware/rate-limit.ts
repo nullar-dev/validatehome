@@ -1,28 +1,55 @@
 import { createTooManyRequestsProblem } from "@validatehome/shared";
+import { sql } from "drizzle-orm";
 import type { Context } from "hono";
+import { db } from "../db.js";
 
 interface RateLimitRecord {
   count: number;
-  resetTime: number;
+  resetTime: Date;
 }
 
-const store = new Map<string, RateLimitRecord>();
 const WINDOW_MS = 60 * 1000;
 
-function cleanup(): void {
-  const now = Date.now();
-  for (const [key, record] of store.entries()) {
-    if (record.resetTime < now) {
-      store.delete(key);
-    }
-  }
-}
-
-setInterval(cleanup, WINDOW_MS);
+const initRateLimitStore = db.execute(sql`
+  create table if not exists api_rate_limits (
+    bucket_key text primary key,
+    count integer not null,
+    reset_time timestamptz not null
+  )
+`);
 
 export interface RateLimitConfig {
   windowMs?: number;
   maxRequests?: number;
+}
+
+async function incrementRateLimit(key: string, windowMs: number): Promise<RateLimitRecord> {
+  await initRateLimitStore;
+
+  const now = new Date();
+  const resetAt = new Date(now.getTime() + windowMs);
+
+  const rows = (await db.execute(sql`
+    insert into api_rate_limits (bucket_key, count, reset_time)
+    values (${key}, 1, ${resetAt})
+    on conflict (bucket_key)
+    do update set
+      count = case
+        when api_rate_limits.reset_time < ${now} then 1
+        else api_rate_limits.count + 1
+      end,
+      reset_time = case
+        when api_rate_limits.reset_time < ${now} then ${resetAt}
+        else api_rate_limits.reset_time
+      end
+    returning count, reset_time as "resetTime"
+  `)) as Array<{ count: number; resetTime: string | Date }>;
+
+  const row = rows[0];
+  if (!row) {
+    return { count: 1, resetTime: resetAt };
+  }
+  return { count: Number(row.count), resetTime: new Date(row.resetTime) };
 }
 
 export function rateLimitMiddleware(config: RateLimitConfig = {}) {
@@ -30,25 +57,14 @@ export function rateLimitMiddleware(config: RateLimitConfig = {}) {
   const maxRequests = config.maxRequests ?? 100;
 
   return async (c: Context, next: () => Promise<void>): Promise<void> => {
-    const apiKey = c.get("apiKey");
+    const apiKey = c.get("apiKey") as { id?: string } | undefined;
     const key =
       apiKey?.id ?? c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "anonymous";
 
+    const record = await incrementRateLimit(key, windowMs);
     const now = Date.now();
-    const existing = store.get(key);
-
-    if (!existing || existing.resetTime < now) {
-      store.set(key, { count: 1, resetTime: now + windowMs });
-    } else {
-      existing.count++;
-    }
-
-    const record = store.get(key);
-    if (!record) {
-      return;
-    }
     const remaining = Math.max(0, maxRequests - record.count);
-    const resetSeconds = Math.ceil((record.resetTime - now) / 1000);
+    const resetSeconds = Math.max(1, Math.ceil((record.resetTime.getTime() - now) / 1000));
 
     c.res.headers.set("x-rate-limit-limit", String(maxRequests));
     c.res.headers.set("x-rate-limit-remaining", String(remaining));

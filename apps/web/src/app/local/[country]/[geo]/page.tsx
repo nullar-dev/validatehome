@@ -42,6 +42,13 @@ const countryNames: Record<string, string> = {
   ca: "Canada",
 };
 
+const LANGUAGE_BY_COUNTRY: Record<string, string> = {
+  us: "en-US",
+  uk: "en-GB",
+  au: "en-AU",
+  ca: "en-CA",
+};
+
 export async function generateStaticParams() {
   const params: { country: string; geo: string }[] = [];
   for (const country of Object.keys(geoData)) {
@@ -63,6 +70,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const geoInfo = geoData[countryCode]?.[geoCode];
   const geoName = geoInfo?.name ?? geo;
   const canonicalPath = `/local/${countryCode}/${geoCode}`;
+  const languageAlternates = Object.entries(geoData).reduce<Record<string, string>>(
+    (acc, [code, geos]) => {
+      if (geos[geoCode]) {
+        const language = LANGUAGE_BY_COUNTRY[code] ?? `en-${code.toUpperCase()}`;
+        acc[language] = `/local/${code}/${geoCode}`;
+      }
+      return acc;
+    },
+    {},
+  );
 
   return {
     title: `${geoName} Energy Rebates & Incentives - ${countryName}`,
@@ -70,6 +87,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: {
       canonical: canonicalPath,
       languages: {
+        ...languageAlternates,
         "x-default": canonicalPath,
       },
     },

@@ -156,9 +156,8 @@ test.describe("Accessibility Tests", () => {
   test("heading hierarchy is correct", async ({ page }) => {
     await page.goto(BASE_URL);
 
-    const headings = page.locator("h1, h2");
-    const count = await headings.count();
-    expect(count).toBeGreaterThan(0);
-    await expect(headings.first()).toHaveJSProperty("tagName", "H1");
+    const h1 = page.locator("h1");
+    await expect(h1).toHaveCount(1);
+    await expect(h1).toBeVisible();
   });
 });

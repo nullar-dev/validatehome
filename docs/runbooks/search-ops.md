@@ -159,7 +159,7 @@ Run health check and look for:
 
 Set up alerts for:
 - Meilisearch health check failures
-- Document count drift > 10%
+- Document count drift > 5%
 - Tasks stuck in processing > 5 minutes
 
 ---

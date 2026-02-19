@@ -225,11 +225,7 @@ export default async function ProgramPage({ params }: Props) {
 
     return (
       <>
-        <script
-          type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
-        />
+        <script type="application/ld+json">{safeJsonLd(jsonLd)}</script>
         <main className="mx-auto max-w-4xl px-4 py-12">
           <nav className="mb-8 flex gap-2 text-sm">
             <a href="/programs" className="text-muted-foreground hover:underline">
@@ -280,7 +276,13 @@ export default async function ProgramPage({ params }: Props) {
               {programBenefits.length > 0 ? (
                 <ul className="space-y-3">
                   {programBenefits.map((benefit) => {
-                    const b: ProgramBenefit = benefit;
+                    const b: ProgramBenefit = {
+                      id: benefit.id,
+                      type: benefit.type,
+                      percentage: benefit.percentage,
+                      maxAmount: benefit.maxAmount,
+                      description: benefit.description,
+                    };
                     return (
                       <li key={b.id} className="rounded-md bg-muted p-3">
                         <div className="font-medium">{formatBenefitLabel(b)}</div>

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://validatehome.com";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ?? "https://validatehome.com";
 
 const LOCAL_PAGES = [
   { country: "us", geo: "ca" },

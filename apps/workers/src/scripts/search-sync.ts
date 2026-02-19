@@ -6,6 +6,9 @@ import {
   healthCheck,
   indexPrograms,
   type ProgramDocument,
+  type SearchBenefitType,
+  type SearchCountryCode,
+  type SearchCurrencyCode,
 } from "@validatehome/shared";
 import { inArray } from "drizzle-orm";
 
@@ -14,14 +17,38 @@ const db = createDb(process.env.DATABASE_URL ?? "postgresql://localhost:5432/val
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST ?? "http://localhost:7700";
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY;
 
-function getCurrency(country?: string): string {
+function toCountryCode(country?: string | null): SearchCountryCode {
+  if (country === "US" || country === "UK" || country === "AU" || country === "CA") {
+    return country;
+  }
+  return "unknown";
+}
+
+function toBenefitType(type?: string | null): SearchBenefitType {
+  if (
+    type === "tax_credit" ||
+    type === "rebate" ||
+    type === "grant" ||
+    type === "loan" ||
+    type === "financing"
+  ) {
+    return type;
+  }
+  return "unknown";
+}
+
+function getCurrency(country?: string): SearchCurrencyCode {
   const currencyMap: Record<string, string> = {
     US: "USD",
     UK: "GBP",
     AU: "AUD",
     CA: "CAD",
   };
-  return currencyMap[country ?? ""] ?? "USD";
+  const resolved = currencyMap[country ?? ""];
+  if (resolved === "USD" || resolved === "GBP" || resolved === "AUD" || resolved === "CAD") {
+    return resolved;
+  }
+  return "unknown";
 }
 
 function mapProgramToDocument(
@@ -39,10 +66,10 @@ function mapProgramToDocument(
     slug: program.slug,
     description: program.description,
     status: program.status,
-    country: jurisdiction?.country ?? "unknown",
+    country: toCountryCode(jurisdiction?.country),
     jurisdiction: jurisdiction?.name ?? jurisdiction?.isoCode ?? "unknown",
     categories: [],
-    benefitType: primaryBenefit?.type ?? "unknown",
+    benefitType: toBenefitType(primaryBenefit?.type),
     maxAmount: primaryBenefit ? parseFloat(primaryBenefit.maxAmount ?? "0") : null,
     currency: getCurrency(jurisdiction?.country),
     url: `https://validatehome.com/programs/${jurisdiction?.country?.toLowerCase() ?? "us"}/${program.slug}`,

@@ -143,8 +143,8 @@ export const diffRoutes = new Hono()
 
         return {
           id: row.id,
-          programId: row.sourceId,
-          programName: `Source ${row.sourceId.slice(0, 8)}`,
+          sourceId: row.sourceId,
+          sourceName: `Source ${row.sourceId.slice(0, 8)}`,
           changeType: toChangeType(row.diffType),
           oldValue: values.oldValue,
           newValue: values.newValue,

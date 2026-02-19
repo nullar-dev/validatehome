@@ -96,6 +96,9 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
           },
@@ -138,6 +141,9 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           }
@@ -162,6 +168,9 @@
           "200": {
             "description": "Successful response"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           }
@@ -184,6 +193,9 @@
         "responses": {
           "200": {
             "description": "Successful response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
@@ -218,6 +230,9 @@
           "200": {
             "description": "Successful response"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
@@ -242,6 +257,9 @@
         "responses": {
           "200": {
             "description": "Calculation result"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
@@ -250,10 +268,9 @@
   "components": {
     "securitySchemes": {
       "ApiKeyAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "Authorization",
-        "description": "API key authentication using Bearer token. Get your API key from the dashboard."
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key authentication. Get your API key from the dashboard."
       }
     },
     "schemas": {

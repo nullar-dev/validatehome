@@ -83,19 +83,6 @@
       }
     },
     {
-      "includes": [
-        "apps/web/src/app/programs/\\[country\\]/\\[slug\\]/page.tsx",
-        "apps/web/src/app/calculator/\\[category\\]/page.tsx"
-      ],
-      "linter": {
-        "rules": {
-          "security": {
-            "noDangerouslySetInnerHtml": "off"
-          }
-        }
-      }
-    },
-    {
       "includes": ["**/scripts/*.ts", "**/scripts/**/*.ts"],
       "linter": {
         "rules": {

@@ -203,7 +203,7 @@ jobs:
             fi
             sleep 1
           done
-          docker compose exec -T validatehome-db pg_isready -U validatehome
+          docker compose exec -T validatehome-db pg_isready -U "${POSTGRES_USER:-validatehome}"
 
       - name: Run migrations
         run: pnpm db:migrate
@@ -237,7 +237,6 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      pull-requests: read
     needs: [build, smoke, lighthouse]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:

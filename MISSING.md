@@ -8,15 +8,15 @@ A comprehensive list of best practices and enhancements not yet implemented in t
 
 ## 📊 Summary
 
-| Category | Implemented | Missing | Total |
-|----------|-------------|---------|-------|
-| API Design | 14 | 9 | 23 |
-| Next.js Frontend | 10 | 11 | 21 |
-| Security | 7 | 4 | 11 |
-| Reliability | 6 | 3 | 9 |
-| DevOps | 4 | 4 | 8 |
-| Documentation | 2 | 3 | 5 |
-| **TOTAL** | **43** | **34** | **77** |
+| Category         | Implemented | Missing | Total |
+| ---------------- | ----------: | ------: | ----: |
+| API Design       |          14 |       9 |    23 |
+| Next.js Frontend |          10 |      11 |    21 |
+| Security         |           7 |       4 |    11 |
+| Reliability      |           6 |       3 |     9 |
+| DevOps           |           4 |       4 |     8 |
+| Documentation    |           2 |       3 |     5 |
+| **TOTAL**        |      **43** |  **34** | **77** |
 
 ---
 
@@ -58,6 +58,7 @@ Add PATCH support for partial resource updates instead of full PUT. This follows
 Implement Next.js error.js conventions for proper error handling. Required for production-grade React applications.
 
 **Files to create:**
+
 - `apps/web/src/app/error.tsx`
 - `apps/web/src/app/global-error.tsx`
 - `apps/web/src/app/not-found.tsx`
@@ -132,6 +133,7 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 Infrastructure as Code for reproducible deployments. Essential for production.
 
 **Cost:**
+
 - **Terraform Cloud:** Free tier available (up to 500 resources)
 - **AWS/GCP/Azure:** Pay-per-use for cloud resources
 - **Recommendation:** Use Terraform OpenTF (free, open-source)
@@ -150,6 +152,7 @@ Infrastructure as Code for reproducible deployments. Essential for production.
 Automated backup procedures and tested restore processes.
 
 **Cost:**
+
 - **Neon (current):** Free tier includes point-in-time recovery
 - **Custom backups:** Requires cron job + script (free)
 - **External service (Bacula):** Free, open-source
@@ -183,6 +186,7 @@ pnpm add opossum
 
 **Description:**
 Documented procedures for:
+
 - Database failure
 - Search index corruption
 - Complete outage recovery
@@ -203,6 +207,7 @@ Documented procedures for:
 Distributed tracing for debugging production issues.
 
 **Cost:**
+
 - **Development:** Free (local Jaeger)
 - **Production:**
   - Grafana Cloud (free tier): 50GB traces/month
@@ -236,6 +241,7 @@ export default defineNextConfig({
 ```
 
 **Cost:**
+
 - **Vercel:** Built-in (pro includes image optimization)
 - **Self-hosted:** Uses sharp (free)
 
@@ -291,12 +297,14 @@ Content Security Policy headers for XSS protection.
 
 **Description:**
 Edge middleware for:
+
 - Authentication
 - Geo-routing
 - A/B testing
 - Rate limiting (at edge)
 
 **Cost:**
+
 - **Vercel Edge:** Included in pro plan
 - **Self-hosted:** Free (using Next.js middleware)
 
@@ -405,6 +413,7 @@ Implement conditional requests for GET endpoints.
 Rotate API keys and database credentials automatically.
 
 **Cost:**
+
 - **HashiCorp Vault:** Free (self-hosted) or paid ($50+/month hosted)
 - **AWS Secrets Manager:** Paid (~$0.40/secret/month)
 - **Recommendation:** Use Vault (free tier available)
@@ -540,6 +549,7 @@ Preview mode for CMS content.
 Gradual rollout system.
 
 **Cost:**
+
 - **LaunchDarkly:** Paid ($75+/month)
 - **Unleash:** Free (self-hosted) or paid ($99+/month hosted)
 - **Configu:** Free tier available
@@ -582,6 +592,7 @@ Document architectural decisions.
 Blue/green or canary deployments.
 
 **Cost:**
+
 - **Vercel:** Built-in
 - **GitHub Actions:** Free tier available
 - **Argo CD:** Free, open-source
@@ -593,7 +604,7 @@ Blue/green or canary deployments.
 ### Session 1 (Critical - ~2 hours)
 
 - [ ] PATCH endpoint for programs
-- [ ] Error boundaries (error.tsx, not-found.tsx)
+- [ ] Error boundaries (error.tsx, global-error.tsx)
 - [ ] Request size limits
 - [ ] Graceful shutdown
 - [ ] Terraform/IaC scaffold
@@ -640,15 +651,15 @@ Blue/green or canary deployments.
 
 ## 💰 Cost Summary
 
-| Item | Free | Paid | Notes |
-|------|------|------|-------|
-| Terraform | ✅ | - | Use OpenTF |
-| Backup | ✅ | - | Neon includes |
-| Circuit Breaker | ✅ | - | opossum lib |
-| OpenTelemetry | ✅ | - | Jaeger/Grafana |
-| Image Opt | ✅ | - | Next.js built-in |
-| Secrets | ✅ | - | Vault free tier |
-| Feature Flags | ⚠️ | - | Unleash free |
+| Item          | Free | Paid | Notes              |
+| ------------- | :--: | :--: | ------------------ |
+| Terraform     |  ✅  |  -   | Use OpenTF         |
+| Backup        |  ✅  |  -   | Neon includes      |
+| Circuit Breaker | ✅ |  -   | opossum lib        |
+| OpenTelemetry |  ✅  |  -   | Jaeger/Grafana     |
+| Image Opt     |  ✅  |  -   | Next.js built-in   |
+| Secrets       |  ✅  |  -   | Vault free tier    |
+| Feature Flags |  ⚠️  |  -   | Unleash free       |
 
 **Total mandatory cost:** $0
 **Optional paid features:** ~$0-50/month
@@ -687,4 +698,4 @@ These are nice-to-haves based on team preference:
 
 ---
 
-*Last updated: 2026-02-19*
+Last updated: 2026-02-19

@@ -17,7 +17,7 @@ interface CalculationResult {
   }>;
 }
 
-const countryNames: Record<string, string> = {
+const COUNTRY_NAMES: Record<string, string> = {
   US: "United States",
   UK: "United Kingdom",
   AU: "Australia",
@@ -77,7 +77,7 @@ export function CalculatorForm({ category }: CalculatorFormProps) {
             onChange={(e) => setCountry(e.target.value)}
             className="w-full rounded-md border border-input bg-background px-3 py-2"
           >
-            {Object.entries(countryNames).map(([code, name]) => (
+            {Object.entries(COUNTRY_NAMES).map(([code, name]) => (
               <option key={code} value={code}>
                 {name}
               </option>

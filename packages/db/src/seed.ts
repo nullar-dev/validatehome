@@ -2367,7 +2367,7 @@ async function seed() {
           postalCode: "5045",
           country: "AU" as const,
           jurisdictionIds: [auFederalId, auSaId],
-          city: " Brighton",
+          city: "Brighton",
           stateProvince: "SA",
           lat: "-35.0300",
           lng: "138.5200",

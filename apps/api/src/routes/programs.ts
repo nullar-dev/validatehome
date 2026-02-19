@@ -1,10 +1,15 @@
 import type { CountryCode, Program } from "@validatehome/db";
 import { benefitRepo, jurisdictionRepo, programRepo } from "@validatehome/db";
 import { programs } from "@validatehome/db/schema";
-import { createBadRequestProblem, createNotFoundProblem } from "@validatehome/shared";
+import {
+  createBadRequestProblem,
+  createForbiddenProblem,
+  createNotFoundProblem,
+} from "@validatehome/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { db } from "../db.js";
+import { commonSchemas } from "../middleware/validation.js";
 
 function buildProgramUpdates(body: Record<string, unknown>): Record<string, unknown> {
   const updates: Record<string, unknown> = {};
@@ -29,6 +34,19 @@ function buildProgramUpdates(body: Record<string, unknown>): Record<string, unkn
   }
 
   return updates;
+}
+
+type ApiKeyContext = {
+  id: string;
+  tier: "free" | "pro" | "enterprise";
+};
+
+function getEnterpriseApiKey(c: { get: (key: string) => unknown }): ApiKeyContext | null {
+  const apiKey = c.get("apiKey") as ApiKeyContext | undefined;
+  if (!apiKey || apiKey.tier !== "enterprise") {
+    return null;
+  }
+  return apiKey;
 }
 
 export const programRoutes = new Hono()
@@ -60,6 +78,7 @@ export const programRoutes = new Hono()
       const filters: {
         country?: CountryCode;
         status?: "open" | "waitlist" | "reserved" | "funded" | "closed" | "coming_soon";
+        search?: string;
       } = {};
 
       if (jurisdiction) {
@@ -74,6 +93,9 @@ export const programRoutes = new Hono()
           | "closed"
           | "coming_soon";
       }
+      if (search?.trim()) {
+        filters.search = search.trim();
+      }
 
       const repo = programRepo(db);
       const result = await repo.findAll(filters, { page, limit });
@@ -85,19 +107,8 @@ export const programRoutes = new Hono()
         programs = result.data;
       }
 
-      let finalPrograms = programs;
-
-      if (search && finalPrograms.length > 0) {
-        const searchLower = search.toLowerCase();
-        finalPrograms = finalPrograms.filter(
-          (p: Program) =>
-            p.name.toLowerCase().includes(searchLower) ||
-            (p.description?.toLowerCase().includes(searchLower) ?? false),
-        );
-      }
-
       const totalCount =
-        !Array.isArray(result) && "total" in result ? result.total : finalPrograms.length;
+        !Array.isArray(result) && "total" in result ? result.total : programs.length;
 
       const meta = {
         total: totalCount,
@@ -106,7 +117,7 @@ export const programRoutes = new Hono()
         filters: { jurisdiction, status, search },
       };
 
-      return c.json({ success: true, data: finalPrograms, meta });
+      return c.json({ success: true, data: programs, meta });
     } catch (_error) {
       return c.json({ success: false, data: [], meta: { error: "Failed to fetch programs" } }, 500);
     }
@@ -124,19 +135,36 @@ export const programRoutes = new Hono()
     try {
       const repo = programRepo(db);
       const sinceDate = since ? new Date(since) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const changes: Array<{
+        id: string;
+        slug: string;
+        name: string;
+        status: Program["status"];
+        updatedAt: Date;
+      }> = [];
 
-      const result = await repo.findAll({}, { page: 1, limit: 1000 });
-      const allPrograms: Program[] = Array.isArray(result) ? (result as Program[]) : result.data;
+      let pageNumber = 1;
+      while (true) {
+        const result = await repo.findAll(
+          { updatedSince: sinceDate },
+          { page: pageNumber, limit: 1000 },
+        );
+        const pageData: Program[] = Array.isArray(result) ? result : result.data;
+        changes.push(
+          ...pageData.map((p: Program) => ({
+            id: p.id,
+            slug: p.slug,
+            name: p.name,
+            status: p.status,
+            updatedAt: p.updatedAt,
+          })),
+        );
 
-      const changes = allPrograms
-        .filter((p: Program) => p.updatedAt >= sinceDate)
-        .map((p: Program) => ({
-          id: p.id,
-          slug: p.slug,
-          name: p.name,
-          status: p.status,
-          updatedAt: p.updatedAt,
-        }));
+        if (Array.isArray(result) || pageNumber >= result.totalPages) {
+          break;
+        }
+        pageNumber += 1;
+      }
 
       return c.json({
         success: true,
@@ -236,14 +264,21 @@ export const programRoutes = new Hono()
     }
   })
   .post("/", async (c) => {
-    try {
-      const body = await c.req.json();
-      const repo = programRepo(db);
+    const apiKey = getEnterpriseApiKey(c);
+    if (!apiKey) {
+      return c.json(
+        createForbiddenProblem("Enterprise tier is required for program mutations"),
+        403,
+      );
+    }
 
-      if (!body.name || !body.slug || !body.jurisdictionId) {
-        const problem = createBadRequestProblem("name, slug, and jurisdictionId are required");
-        return c.json(problem, 400);
+    try {
+      const parsed = commonSchemas.programCreate.safeParse(await c.req.json());
+      if (!parsed.success) {
+        return c.json(createBadRequestProblem("Invalid request body for program creation"), 400);
       }
+      const body = parsed.data;
+      const repo = programRepo(db);
 
       const program = await repo.create({
         name: body.name,
@@ -260,6 +295,13 @@ export const programRoutes = new Hono()
         applicationDeadline: body.applicationDeadline ? new Date(body.applicationDeadline) : null,
       });
 
+      // biome-ignore lint/suspicious/noConsole: server-side audit trail
+      console.info("Program created", {
+        action: "program.create",
+        actor: `apikey:${apiKey.id}`,
+        programId: program.id,
+      });
+
       return c.json({ success: true, data: program }, 201);
     } catch (_error) {
       return c.json(
@@ -274,8 +316,20 @@ export const programRoutes = new Hono()
       return c.json(createBadRequestProblem("Program ID is required"), 400);
     }
 
+    const apiKey = getEnterpriseApiKey(c);
+    if (!apiKey) {
+      return c.json(
+        createForbiddenProblem("Enterprise tier is required for program mutations"),
+        403,
+      );
+    }
+
     try {
-      const body = await c.req.json();
+      const parsed = commonSchemas.programUpdate.safeParse(await c.req.json());
+      if (!parsed.success) {
+        return c.json(createBadRequestProblem("Invalid request body for program update"), 400);
+      }
+      const body = parsed.data;
       const repo = programRepo(db);
       const existing = await repo.findById(id);
       if (!existing) {
@@ -284,6 +338,14 @@ export const programRoutes = new Hono()
 
       const updates = buildProgramUpdates(body);
       const program = await repo.update(id, updates);
+
+      // biome-ignore lint/suspicious/noConsole: server-side audit trail
+      console.info("Program updated", {
+        action: "program.update",
+        actor: `apikey:${apiKey.id}`,
+        programId: id,
+      });
+
       return c.json({ success: true, data: program });
     } catch (_error) {
       return c.json(
@@ -300,6 +362,14 @@ export const programRoutes = new Hono()
       return c.json(problem, 400);
     }
 
+    const apiKey = getEnterpriseApiKey(c);
+    if (!apiKey) {
+      return c.json(
+        createForbiddenProblem("Enterprise tier is required for program mutations"),
+        403,
+      );
+    }
+
     try {
       const repo = programRepo(db);
 
@@ -310,6 +380,13 @@ export const programRoutes = new Hono()
       }
 
       await db.delete(programs).where(eq(programs.id, id));
+
+      // biome-ignore lint/suspicious/noConsole: server-side audit trail
+      console.info("Program deleted", {
+        action: "program.delete",
+        actor: `apikey:${apiKey.id}`,
+        programId: id,
+      });
 
       return c.json({ success: true, data: null });
     } catch (_error) {

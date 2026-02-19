@@ -10,38 +10,56 @@ type WaitableClient = MeiliSearch & {
 
 export interface MeilisearchConfig {
   readonly host: string;
-  apiKey?: string;
+  readonly apiKey?: string;
 }
+
+export type SearchCountryCode = "US" | "UK" | "AU" | "CA" | "unknown";
+export type SearchProgramStatus =
+  | "open"
+  | "waitlist"
+  | "reserved"
+  | "funded"
+  | "closed"
+  | "coming_soon"
+  | "unknown";
+export type SearchCurrencyCode = "USD" | "GBP" | "AUD" | "CAD" | "unknown";
+export type SearchBenefitType =
+  | "tax_credit"
+  | "rebate"
+  | "grant"
+  | "loan"
+  | "financing"
+  | "unknown";
 
 export interface ProgramDocument {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
   readonly description: string | null;
-  readonly status: string;
-  readonly country: string;
+  readonly status: SearchProgramStatus;
+  readonly country: SearchCountryCode;
   readonly jurisdiction: string;
   readonly categories: readonly string[];
-  readonly benefitType: string;
+  readonly benefitType: SearchBenefitType;
   readonly maxAmount: number | null;
-  readonly currency: string;
+  readonly currency: SearchCurrencyCode;
   readonly url: string;
   readonly lastVerified: string | null;
 }
 
 export interface SearchOptions {
   readonly query: string;
-  limit?: number;
-  offset?: number;
-  filter?: string[];
-  sort?: string[];
+  readonly limit?: number;
+  readonly offset?: number;
+  readonly filter?: string[];
+  readonly sort?: string[];
 }
 
 export interface SearchResult {
-  hits: ProgramDocument[];
-  totalHits: number;
-  processingTimeMs: number;
-  query: string;
+  readonly hits: readonly ProgramDocument[];
+  readonly totalHits: number;
+  readonly processingTimeMs: number;
+  readonly query: string;
 }
 
 async function waitForTaskCompletion(client: MeiliSearch, taskUid: number): Promise<void> {

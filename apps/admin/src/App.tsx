@@ -5,12 +5,12 @@ import dataProvider from "@refinedev/simple-rest";
 import { App as AntdApp, ConfigProvider } from "antd";
 import { BrowserRouter, Route, Routes } from "react-router";
 import "@refinedev/antd/dist/reset.css";
-import { RulesList, RuleTester } from "./components/rules";
-import { DiffList } from "./pages/diffs/list";
-import { ProgramCreate } from "./pages/programs/create";
-import { ProgramEdit } from "./pages/programs/edit";
-import { ProgramList } from "./pages/programs/list";
-import { ProgramShow } from "./pages/programs/show";
+import { RulesList, RuleTester } from "./components/rules/index.js";
+import { DiffList } from "./pages/diffs/list.js";
+import { ProgramCreate } from "./pages/programs/create.js";
+import { ProgramEdit } from "./pages/programs/edit.js";
+import { ProgramList } from "./pages/programs/list.js";
+import { ProgramShow } from "./pages/programs/show.js";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000/v1";
 

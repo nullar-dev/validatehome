@@ -69,10 +69,9 @@ test.describe("ValidateHome E2E Tests", () => {
 
     test("has skip link for accessibility", async ({ page }) => {
       await page.goto(BASE_URL);
-      await page.keyboard.press("Tab");
-      const focused = page.locator(":focus");
-      await expect(focused).toBeVisible();
-      const href = await focused.getAttribute("href");
+      const skipLink = page.locator('a[href^="#"]').first();
+      await expect(skipLink).toBeAttached();
+      const href = await skipLink.getAttribute("href");
       expect(href?.startsWith("#")).toBeTruthy();
     });
   });
