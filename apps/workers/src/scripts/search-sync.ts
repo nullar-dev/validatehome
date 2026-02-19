@@ -142,7 +142,9 @@ export async function syncProgramsToSearch(): Promise<{ indexed: number; errors:
   let errors = 0;
   for (const program of programs) {
     try {
-      documents.push(mapProgramToDocument(program, jurisdictionMap, benefitMap));
+      const doc = mapProgramToDocument(program, jurisdictionMap, benefitMap);
+      Object.freeze(doc);
+      documents[documents.length] = doc;
     } catch (error) {
       console.error("Failed to map program for indexing", { programId: program.id, error });
       errors++;

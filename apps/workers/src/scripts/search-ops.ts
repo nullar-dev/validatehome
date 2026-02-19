@@ -8,12 +8,21 @@ import {
   type ProgramDocument,
 } from "@validatehome/shared";
 
+/** MeiliSearch host URL from environment or default localhost */
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST ?? "http://localhost:7700";
+/** MeiliSearch API key from environment */
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY ?? "";
+/** Database URL from environment */
 const DATABASE_URL = process.env.DATABASE_URL;
 
+/** Name of the search index */
 const INDEX_NAME = "programs";
 
+/**
+ * Performs a full reindex of all programs from the database to MeiliSearch.
+ * Drops existing index and recreates with current data.
+ * @returns Promise that resolves when reindex is complete
+ */
 async function fullReindex() {
   if (!DATABASE_URL) {
     // eslint-disable-next-line no-console
