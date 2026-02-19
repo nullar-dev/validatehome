@@ -1,8 +1,7 @@
-import { apiKeyRepo, createDb } from "@validatehome/db";
+import { apiKeyRepo } from "@validatehome/db";
 import { createInternalErrorProblem, createUnauthorizedProblem } from "@validatehome/shared";
 import type { Context } from "hono";
-
-const db = createDb(process.env.DATABASE_URL ?? "postgresql://localhost:5432/validatehome");
+import { db } from "../db.js";
 
 export interface ApiKeyContext {
   apiKey: {
@@ -60,7 +59,9 @@ export async function apiKeyMiddleware(c: Context, next: () => Promise<void>) {
     });
 
     await next();
-  } catch (_error) {
+  } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: auth middleware error visibility
+    console.error("API key authentication failed", error);
     const problem = createInternalErrorProblem("Authentication service error");
     return c.json(problem, 500);
   }

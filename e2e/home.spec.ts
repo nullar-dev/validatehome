@@ -63,8 +63,8 @@ test.describe("ValidateHome E2E Tests", () => {
 
     test("has proper heading hierarchy", async ({ page }) => {
       await page.goto(BASE_URL);
-      const headings = page.locator("h1, h2, h3");
-      await expect(headings.first()).toHaveRole("heading");
+      await expect(page.locator("h1")).toHaveCount(1);
+      await expect(page.locator("h2").first()).toBeVisible();
     });
 
     test("has skip link for accessibility", async ({ page }) => {

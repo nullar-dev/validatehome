@@ -1715,7 +1715,7 @@ async function seed() {
           lng: "-1.4746",
         },
         {
-          postalCode: "Middlesbrough",
+          postalCode: "TS1 1AA",
           country: "UK" as const,
           jurisdictionIds: [ukFederalId, ukEngId],
           city: "Middlesbrough",
@@ -2340,7 +2340,7 @@ async function seed() {
           postalCode: "4064",
           country: "AU" as const,
           jurisdictionIds: [auFederalId, auQldId],
-          city: " Indooroopilly",
+          city: "Indooroopilly",
           stateProvince: "QLD",
           lat: "-27.5000",
           lng: "152.9700",

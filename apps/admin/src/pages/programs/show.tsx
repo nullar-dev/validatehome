@@ -27,7 +27,7 @@ const statusColors: Record<string, string> = {
   coming_soon: "default",
 };
 
-export const ProgramShow: React.FC<IResourceComponentsProps> = () => {
+export function ProgramShow(_props: IResourceComponentsProps) {
   const { query } = useShow<Program, HttpError>();
   const { data, isLoading } = query;
 
@@ -117,4 +117,4 @@ export const ProgramShow: React.FC<IResourceComponentsProps> = () => {
       </Descriptions>
     </Card>
   );
-};
+}

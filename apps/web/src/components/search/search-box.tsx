@@ -9,7 +9,7 @@ interface SearchResult {
   slug: string;
   description: string | null;
   status: string;
-  jurisdiction: { name: string } | null;
+  jurisdiction: { name: string; country?: string } | null;
 }
 
 interface Facets {
@@ -26,14 +26,23 @@ export function SearchBox() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [facets, setFacets] = useState<Facets | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [facetError, setFacetError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/search/facets")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) setFacets(data.data);
+        if (data.success) {
+          setFacets(data.data);
+          setFacetError(null);
+        } else {
+          setFacetError("Unable to load search filters");
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        setFacetError("Unable to load search filters");
+      });
   }, []);
 
   const performSearch = useCallback(async () => {
@@ -44,12 +53,20 @@ export function SearchBox() {
 
     setIsLoading(true);
     setHasSearched(true);
+    setSearchError(null);
 
     try {
       const response = await fetch(`/api/search?${params.toString()}`);
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        setSearchError(errorBody?.meta?.error ?? "Search failed. Please try again.");
+        setResults([]);
+        return;
+      }
       const data = await response.json();
       setResults(data.data ?? []);
     } catch {
+      setSearchError("Search failed. Please try again.");
       setResults([]);
     } finally {
       setIsLoading(false);
@@ -112,23 +129,30 @@ export function SearchBox() {
         )}
       </div>
 
+      {facetError && <p className="mb-4 text-sm text-amber-700">{facetError}</p>}
+
       {isLoading && (
         <div className="flex justify-center py-8">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       )}
 
-      {!isLoading && hasSearched && results.length === 0 && (
+      {!isLoading && hasSearched && !searchError && results.length === 0 && (
         <p className="mt-4 text-center text-muted-foreground">
           No programs found. Try adjusting your filters.
         </p>
       )}
 
+      {searchError && <p className="mt-4 text-center text-red-700">{searchError}</p>}
+
       {results.length > 0 && (
         <ul className="mt-4 divide-y rounded-lg border bg-background">
           {results.map((result) => (
             <li key={result.id}>
-              <Link href={`/programs/us/${result.slug}`} className="block p-4 hover:bg-muted">
+              <Link
+                href={`/programs/${result.jurisdiction?.country?.toLowerCase() ?? "us"}/${result.slug}`}
+                className="block p-4 hover:bg-muted"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium">{result.name}</h3>

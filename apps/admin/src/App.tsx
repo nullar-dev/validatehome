@@ -35,7 +35,7 @@ export function App() {
           <Refine
             routerProvider={routerProvider}
             dataProvider={dataProvider(API_URL)}
-            notificationProvider={useNotificationProvider}
+            notificationProvider={useNotificationProvider()}
             resources={[
               {
                 name: "programs",
@@ -48,15 +48,6 @@ export function App() {
                 name: "diffs",
                 list: "/diffs",
                 show: "/diffs/:id",
-              },
-              {
-                name: "sources",
-                list: "/sources",
-                show: "/sources/:id",
-              },
-              {
-                name: "api-keys",
-                list: "/api-keys",
               },
               {
                 name: "rules",

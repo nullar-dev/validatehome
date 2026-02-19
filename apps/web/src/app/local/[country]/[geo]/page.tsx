@@ -57,10 +57,12 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { country, geo } = await params;
-  const countryName = countryNames[country] ?? country;
-  const geoInfo = geoData[country]?.[geo.toLowerCase()];
+  const countryCode = country.toLowerCase();
+  const geoCode = geo.toLowerCase();
+  const countryName = countryNames[countryCode] ?? countryCode;
+  const geoInfo = geoData[countryCode]?.[geoCode];
   const geoName = geoInfo?.name ?? geo;
-  const canonicalPath = `/local/${country}/${geo.toLowerCase()}`;
+  const canonicalPath = `/local/${countryCode}/${geoCode}`;
 
   return {
     title: `${geoName} Energy Rebates & Incentives - ${countryName}`,
@@ -76,8 +78,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function LocalPage({ params }: Props) {
   const { country, geo } = await params;
-  const countryName = countryNames[country] ?? country;
-  const geoInfo = geoData[country]?.[geo.toLowerCase()];
+  const countryCode = country.toLowerCase();
+  const geoCode = geo.toLowerCase();
+  const countryName = countryNames[countryCode] ?? countryCode;
+  const geoInfo = geoData[countryCode]?.[geoCode];
   const geoName = geoInfo?.name ?? geo;
 
   return (
@@ -87,7 +91,7 @@ export default async function LocalPage({ params }: Props) {
           Programs
         </Link>
         <span className="text-muted-foreground">/</span>
-        <Link href={`/programs/${country}`} className="text-muted-foreground hover:underline">
+        <Link href={`/programs/${countryCode}`} className="text-muted-foreground hover:underline">
           {countryName}
         </Link>
         <span className="text-muted-foreground">/</span>
@@ -107,7 +111,7 @@ export default async function LocalPage({ params }: Props) {
           {["heat-pump", "solar", "insulation", "battery", "ev-charger"].map((cat) => (
             <Link
               key={cat}
-              href={`/programs/${country}?category=${cat}`}
+              href={`/programs/${countryCode}?category=${cat}`}
               className="rounded-lg border p-4 text-center hover:bg-muted"
             >
               <span className="font-medium capitalize">{cat.replace("-", " ")}</span>
@@ -122,7 +126,7 @@ export default async function LocalPage({ params }: Props) {
           Use our calculator to find out your net cost after applying all available incentives.
         </p>
         <Link
-          href={`/calculator/heat_pump?geo=${geo}`}
+          href={`/calculator/heat_pump?geo=${geoCode}`}
           className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90"
         >
           Calculate Savings

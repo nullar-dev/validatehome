@@ -8,4 +8,4 @@ export const STATUS_OPTIONS: Array<{ label: string; value: string }> = [
 ];
 
 export const CURRENCY_FORMATTER = (value: number | string | undefined): string =>
-  `$ ${Number(value).toLocaleString()}`;
+  `$ ${Number.isFinite(Number(value)) ? Number(value).toLocaleString() : "0"}`;

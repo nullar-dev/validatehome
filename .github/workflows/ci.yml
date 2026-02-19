@@ -236,7 +236,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: write
+      contents: read
       pull-requests: read
     needs: [build, smoke, lighthouse]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -265,6 +265,17 @@ jobs:
           path: sbom.json
           retention-days: 30
 
+      - name: Build provenance
+        run: |
+          echo "## Release Artifacts" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build: ✅ Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tests: ✅ Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Security: ✅ Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Smoke Tests: ✅ Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Lighthouse: ✅ Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Release is ready for deployment." >> "$GITHUB_STEP_SUMMARY"
+
   lighthouse:
     name: Lighthouse CI
     runs-on: ubuntu-latest
@@ -289,13 +300,3 @@ jobs:
 
       - name: Run Lighthouse CI
         run: pnpm dlx @lhci/cli@0.14.0 autorun --config=.lighthouserc.json
-
-      - name: Build provenance
-        run: |
-          echo "## Release Artifacts" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Build: ✅ Passed" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tests: ✅ Passed" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Security: ✅ Passed" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Smoke Tests: ✅ Passed" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Release is ready for deployment." >> "$GITHUB_STEP_SUMMARY"

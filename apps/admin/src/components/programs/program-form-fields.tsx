@@ -5,7 +5,7 @@ type ProgramFormFieldsProps = {
   isCreate?: boolean;
 };
 
-export const ProgramFormFields: React.FC<ProgramFormFieldsProps> = ({ isCreate = false }) => {
+export function ProgramFormFields({ isCreate = false }: ProgramFormFieldsProps) {
   const requiredRule = isCreate
     ? [{ required: true, message: "This field is required" }]
     : undefined;
@@ -27,7 +27,7 @@ export const ProgramFormFields: React.FC<ProgramFormFieldsProps> = ({ isCreate =
       <Form.Item
         label="Status"
         name="status"
-        rules={isCreate ? requiredRule : undefined}
+        rules={requiredRule}
         initialValue={isCreate ? "open" : undefined}
       >
         <Select options={STATUS_OPTIONS} placeholder="Select status" />
@@ -48,6 +48,7 @@ export const ProgramFormFields: React.FC<ProgramFormFieldsProps> = ({ isCreate =
           style={{ width: "100%" }}
           placeholder="Enter budget amount"
           formatter={CURRENCY_FORMATTER}
+          parser={(value) => value?.replace(/[^\d.]/g, "") ?? ""}
         />
       </Form.Item>
 
@@ -56,6 +57,7 @@ export const ProgramFormFields: React.FC<ProgramFormFieldsProps> = ({ isCreate =
           style={{ width: "100%" }}
           placeholder="Enter remaining budget"
           formatter={CURRENCY_FORMATTER}
+          parser={(value) => value?.replace(/[^\d.]/g, "") ?? ""}
         />
       </Form.Item>
 
@@ -78,4 +80,4 @@ export const ProgramFormFields: React.FC<ProgramFormFieldsProps> = ({ isCreate =
       </Form.Item>
     </>
   );
-};
+}

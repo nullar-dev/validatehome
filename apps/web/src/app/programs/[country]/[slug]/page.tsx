@@ -29,7 +29,9 @@ export async function generateStaticParams() {
       country: p.jurisdiction?.toLowerCase() ?? "us",
       slug: p.slug ?? "",
     }));
-  } catch {
+  } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: static params best-effort logging
+    console.error("Failed to generate static params for program pages", error);
     return [];
   } finally {
     await db.close();
@@ -45,10 +47,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: {
       canonical: `https://validatehome.com/programs/${country}/${slug}`,
       languages: {
-        "en-US": `https://validatehome.com/programs/us/${slug}`,
-        "en-GB": `https://validatehome.com/programs/uk/${slug}`,
-        "en-AU": `https://validatehome.com/programs/au/${slug}`,
-        "en-CA": `https://validatehome.com/programs/ca/${slug}`,
         "x-default": `https://validatehome.com/programs/${country}/${slug}`,
       },
     },
@@ -61,14 +59,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-const countryNames: Record<string, string> = {
+const COUNTRY_NAMES: Record<string, string> = {
   us: "United States",
   uk: "United Kingdom",
   au: "Australia",
   ca: "Canada",
 };
 
-const statusColors: Record<string, { bg: string; text: string }> = {
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   open: { bg: "bg-green-100", text: "text-green-800" },
   waitlist: { bg: "bg-yellow-100", text: "text-yellow-800" },
   reserved: { bg: "bg-blue-100", text: "text-blue-800" },
@@ -77,7 +75,7 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   coming_soon: { bg: "bg-gray-100", text: "text-gray-800" },
 };
 
-const statusLabels: Record<string, string> = {
+const STATUS_LABELS: Record<string, string> = {
   open: "Open",
   waitlist: "Waitlist",
   reserved: "Reserved",
@@ -94,18 +92,86 @@ type ProgramBenefit = {
   description: string | null;
 };
 
-const benefitTypeLabels: Record<string, string> = {
+const BENEFIT_TYPE_LABELS: Record<string, string> = {
   tax_credit: "Tax Credit",
   rebate: "Rebate",
   grant: "Grant",
 };
 
 function formatBenefitLabel(benefit: ProgramBenefit): string {
-  const typeLabel = benefitTypeLabels[benefit.type] ?? "Benefit";
+  const typeLabel = BENEFIT_TYPE_LABELS[benefit.type] ?? "Benefit";
   const percentageLabel = benefit.percentage !== null ? ` - ${benefit.percentage}%` : "";
   const maxAmountLabel =
     benefit.maxAmount !== null ? ` up to $${Number(benefit.maxAmount).toLocaleString()}` : "";
   return `${typeLabel}${percentageLabel}${maxAmountLabel}`;
+}
+
+function safeJsonLd(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/<\/script/gi, "<\\/script");
+}
+
+function createProgramJsonLd(params: {
+  name: string;
+  description: string | null;
+  countryName: string;
+  country: string;
+  slug: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "GovernmentService",
+    name: params.name,
+    description:
+      params.description ?? `Home energy upgrade incentive program in ${params.countryName}`,
+    provider: {
+      "@type": "GovernmentOrganization",
+      name: "ValidateHome",
+      url: "https://validatehome.com",
+    },
+    serviceType: "Rebate",
+    areaServed: {
+      "@type": "Country",
+      name: params.countryName,
+    },
+    url: `https://validatehome.com/programs/${params.country}/${params.slug}`,
+  };
+}
+
+function isCountryCode(value: string): value is "US" | "UK" | "AU" | "CA" {
+  return value === "US" || value === "UK" || value === "AU" || value === "CA";
+}
+
+async function getProgramPageData(
+  db: ReturnType<typeof createDb>,
+  countryCode: "US" | "UK" | "AU" | "CA",
+  slug: string,
+) {
+  const [programResult] = await db
+    .select({ program: programs })
+    .from(programs)
+    .innerJoin(jurisdictions, eq(programs.jurisdictionId, jurisdictions.id))
+    .where(and(eq(programs.slug, slug), eq(jurisdictions.country, countryCode)))
+    .limit(1);
+
+  if (!programResult?.program) {
+    return null;
+  }
+
+  const programBenefits = await db
+    .select({
+      id: benefits.id,
+      type: benefits.type,
+      percentage: benefits.percentage,
+      maxAmount: benefits.maxAmount,
+      description: benefits.description,
+    })
+    .from(benefits)
+    .where(eq(benefits.programId, programResult.program.id));
+
+  return { program: programResult.program, programBenefits };
 }
 
 export default async function ProgramPage({ params }: Props) {
@@ -120,34 +186,26 @@ export default async function ProgramPage({ params }: Props) {
 
   try {
     const countryCode = country.toUpperCase();
-
-    const [programResult] = await db
-      .select({ program: programs })
-      .from(programs)
-      .innerJoin(jurisdictions, eq(programs.jurisdictionId, jurisdictions.id))
-      .where(
-        and(
-          eq(programs.slug, slug),
-          eq(jurisdictions.country, countryCode as "US" | "UK" | "AU" | "CA"),
-        ),
-      )
-      .limit(1);
-
-    if (!programResult?.program) {
+    if (!isCountryCode(countryCode)) {
       notFound();
     }
 
-    const program = programResult.program;
-    const countryName = countryNames[country] ?? country.toUpperCase();
+    const pageData = await getProgramPageData(db, countryCode, slug);
+    if (!pageData) {
+      notFound();
+    }
 
-    const programBenefits = await db
-      .select()
-      .from(benefits)
-      .where(eq(benefits.programId, program.id));
+    const { program, programBenefits } = pageData;
+    const countryName = COUNTRY_NAMES[country] ?? country.toUpperCase();
 
     const statusKey = program.status ?? "open";
-    const statusStyle = statusColors[statusKey] ?? { bg: "bg-green-100", text: "text-green-800" };
-    const statusLabel = statusLabels[statusKey] ?? "Unknown";
+    const statusStyle = STATUS_COLORS[statusKey] ?? { bg: "bg-green-100", text: "text-green-800" };
+    const statusLabel = STATUS_LABELS[statusKey] ?? "Unknown";
+
+    const budgetRemaining =
+      typeof program.budgetRemaining === "string" ? Number(program.budgetRemaining) : null;
+    const budgetTotal =
+      typeof program.budgetTotal === "string" ? Number(program.budgetTotal) : null;
 
     const lastVerified = program.lastVerifiedAt
       ? program.lastVerifiedAt.toLocaleDateString("en-US", {
@@ -157,30 +215,20 @@ export default async function ProgramPage({ params }: Props) {
         })
       : "Recently";
 
-    const jsonLd = {
-      "@context": "https://schema.org",
-      "@type": "GovernmentService",
+    const jsonLd = createProgramJsonLd({
       name: program.name,
-      description: program.description ?? `Home energy upgrade incentive program in ${countryName}`,
-      provider: {
-        "@type": "GovernmentOrganization",
-        name: "ValidateHome",
-        url: "https://validatehome.com",
-      },
-      serviceType: "Rebate",
-      areaServed: {
-        "@type": "Country",
-        name: countryName,
-      },
-      url: `https://validatehome.com/programs/${country}/${slug}`,
-    };
+      description: program.description,
+      countryName,
+      country,
+      slug,
+    });
 
     return (
       <>
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
         />
         <main className="mx-auto max-w-4xl px-4 py-12">
           <nav className="mb-8 flex gap-2 text-sm">
@@ -211,11 +259,11 @@ export default async function ProgramPage({ params }: Props) {
                 </span>
                 <span className="text-sm text-muted-foreground">Last verified: {lastVerified}</span>
               </div>
-              {program.budgetTotal && (
+              {budgetTotal !== null && budgetRemaining !== null && (
                 <div className="mt-4">
                   <div className="mb-1 text-sm font-medium">
-                    Budget: ${Number(program.budgetRemaining).toLocaleString()} remaining of $
-                    {Number(program.budgetTotal).toLocaleString()}
+                    Budget: ${budgetRemaining.toLocaleString()} remaining of $
+                    {budgetTotal.toLocaleString()}
                   </div>
                   <div className="h-2 w-full rounded-full bg-gray-200">
                     <div
@@ -232,7 +280,7 @@ export default async function ProgramPage({ params }: Props) {
               {programBenefits.length > 0 ? (
                 <ul className="space-y-3">
                   {programBenefits.map((benefit) => {
-                    const b = benefit as ProgramBenefit;
+                    const b: ProgramBenefit = benefit;
                     return (
                       <li key={b.id} className="rounded-md bg-muted p-3">
                         <div className="font-medium">{formatBenefitLabel(b)}</div>

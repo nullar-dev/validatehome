@@ -67,6 +67,51 @@ function validateOptionalNumber(
   return { valid: true, data: parsed };
 }
 
+function validateStackingNotes(value: unknown): ValidationResult<string[] | undefined> {
+  if (value === undefined) {
+    return { valid: true, data: undefined };
+  }
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    return { valid: false, error: "stackingNotes must be an array of strings" };
+  }
+  return { valid: true, data: value };
+}
+
+function validateSessionId(value: unknown): ValidationResult<string | undefined> {
+  if (value === undefined) {
+    return { valid: true, data: undefined };
+  }
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return { valid: false, error: "sessionId must be a non-empty string" };
+  }
+  return { valid: true, data: value };
+}
+
+function validateUsedAmounts(
+  value: unknown,
+): ValidationResult<NetCostCalculatorInput["usedAmounts"] | undefined> {
+  if (value === undefined) {
+    return { valid: true, data: undefined };
+  }
+  if (!isObject(value)) {
+    return { valid: false, error: "usedAmounts must be an object" };
+  }
+
+  for (const [key, item] of Object.entries(value)) {
+    if (!isObject(item)) {
+      return { valid: false, error: `usedAmounts.${key} must be an object` };
+    }
+    if (typeof item.annualUsed !== "number" || typeof item.lifetimeUsed !== "number") {
+      return {
+        valid: false,
+        error: `usedAmounts.${key} must include numeric annualUsed and lifetimeUsed`,
+      };
+    }
+  }
+
+  return { valid: true, data: value as NetCostCalculatorInput["usedAmounts"] };
+}
+
 function validateInput(payload: unknown): ValidationResult<NetCostCalculatorInput> {
   if (!isObject(payload)) {
     return { valid: false, error: "Request body must be a JSON object" };
@@ -92,6 +137,15 @@ function validateInput(payload: unknown): ValidationResult<NetCostCalculatorInpu
   );
   if (!taxLiabilityResult.valid) return taxLiabilityResult;
 
+  const stackingNotesResult = validateStackingNotes(payload.stackingNotes);
+  if (!stackingNotesResult.valid) return stackingNotesResult;
+
+  const sessionIdResult = validateSessionId(payload.sessionId);
+  if (!sessionIdResult.valid) return sessionIdResult;
+
+  const usedAmountsResult = validateUsedAmounts(payload.usedAmounts);
+  if (!usedAmountsResult.valid) return usedAmountsResult;
+
   return {
     valid: true,
     data: {
@@ -100,9 +154,9 @@ function validateInput(payload: unknown): ValidationResult<NetCostCalculatorInpu
       programs: programsResult.data,
       householdIncome: householdIncomeResult.data,
       estimatedTaxLiability: taxLiabilityResult.data,
-      stackingNotes: payload.stackingNotes as NetCostCalculatorInput["stackingNotes"],
-      sessionId: payload.sessionId as NetCostCalculatorInput["sessionId"],
-      usedAmounts: payload.usedAmounts as NetCostCalculatorInput["usedAmounts"],
+      stackingNotes: stackingNotesResult.data,
+      sessionId: sessionIdResult.data,
+      usedAmounts: usedAmountsResult.data,
     },
   };
 }

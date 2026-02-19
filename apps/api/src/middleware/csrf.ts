@@ -7,7 +7,14 @@ const ALLOWED_ORIGINS = new Set(
     .map((origin) => origin.trim())
     .filter(Boolean),
 );
-const LOOPBACK_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
+const LOOPBACK_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
+
+export function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.has(origin)) {
+    return true;
+  }
+  return process.env.NODE_ENV !== "production" && LOOPBACK_ORIGIN_PATTERN.test(origin);
+}
 
 export async function csrfMiddleware(c: Context, next: Next): Promise<Response | undefined> {
   const method = c.req.method.toUpperCase();
@@ -41,10 +48,7 @@ export async function csrfMiddleware(c: Context, next: Next): Promise<Response |
     );
   }
 
-  const isAllowedLoopback =
-    process.env.NODE_ENV !== "production" && LOOPBACK_ORIGIN_PATTERN.test(requestOrigin);
-
-  if (!ALLOWED_ORIGINS.has(requestOrigin) && !isAllowedLoopback) {
+  if (!isAllowedOrigin(requestOrigin)) {
     return c.json(
       {
         type: "https://validatehome.com/errors/csrf",

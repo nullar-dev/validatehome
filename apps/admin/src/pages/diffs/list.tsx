@@ -2,6 +2,7 @@ import { List, useTable } from "@refinedev/antd";
 import type { IResourceComponentsProps } from "@refinedev/core";
 import { Button, Descriptions, Modal, message, Popconfirm, Space, Table, Tag } from "antd";
 import { useState } from "react";
+import { apiFetch } from "../../lib/api-client";
 
 interface DiffRecord {
   id: string;
@@ -18,7 +19,6 @@ interface DiffRecord {
 export const DiffList: React.FC<IResourceComponentsProps> = () => {
   const [selectedDiff, setSelectedDiff] = useState<DiffRecord | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
-  const apiBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:4000/v1";
 
   const { tableProps } = useTable({
     resource: "diffs",
@@ -44,10 +44,7 @@ export const DiffList: React.FC<IResourceComponentsProps> = () => {
   const handleApprove = async (id: string) => {
     setActionLoadingId(id);
     try {
-      const response = await fetch(`${apiBaseUrl}/diffs/${id}/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await apiFetch(`/diffs/${id}/approve`, { method: "POST" });
       if (!response.ok) {
         throw new Error("Failed to approve diff");
       }
@@ -64,10 +61,7 @@ export const DiffList: React.FC<IResourceComponentsProps> = () => {
   const handleReject = async (id: string) => {
     setActionLoadingId(id);
     try {
-      const response = await fetch(`${apiBaseUrl}/diffs/${id}/reject`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await apiFetch(`/diffs/${id}/reject`, { method: "POST" });
       if (!response.ok) {
         throw new Error("Failed to reject diff");
       }

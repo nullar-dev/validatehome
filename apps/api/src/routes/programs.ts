@@ -1,11 +1,10 @@
 import type { CountryCode, Program } from "@validatehome/db";
-import { benefitRepo, createDb, jurisdictionRepo, programRepo } from "@validatehome/db";
+import { benefitRepo, jurisdictionRepo, programRepo } from "@validatehome/db";
 import { programs } from "@validatehome/db/schema";
 import { createBadRequestProblem, createNotFoundProblem } from "@validatehome/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-
-const db = createDb(process.env.DATABASE_URL ?? "postgresql://localhost:5432/validatehome");
+import { db } from "../db.js";
 
 function buildProgramUpdates(body: Record<string, unknown>): Record<string, unknown> {
   const updates: Record<string, unknown> = {};

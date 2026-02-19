@@ -26,7 +26,7 @@ export function TableLoading() {
             background: "#f5f5f5",
             borderRadius: 4,
             marginBottom: 8,
-            animation: "pulse 1.5s ease-in-out infinite",
+            opacity: 0.85,
           }}
         />
       ))}

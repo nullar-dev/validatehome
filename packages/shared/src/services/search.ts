@@ -1,28 +1,36 @@
 import { MeiliSearch } from "meilisearch";
 
+type WaitableClient = MeiliSearch & {
+  waitForTask?: (
+    taskUid: number,
+    options?: { timeout?: number; interval?: number },
+  ) => Promise<unknown>;
+  getTask?: (taskUid: number) => Promise<{ status: string }>;
+};
+
 export interface MeilisearchConfig {
-  host: string;
+  readonly host: string;
   apiKey?: string;
 }
 
 export interface ProgramDocument {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  status: string;
-  country: string;
-  jurisdiction: string;
-  categories: string[];
-  benefitType: string;
-  maxAmount: number | null;
-  currency: string;
-  url: string;
-  lastVerified: string | null;
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly description: string | null;
+  readonly status: string;
+  readonly country: string;
+  readonly jurisdiction: string;
+  readonly categories: readonly string[];
+  readonly benefitType: string;
+  readonly maxAmount: number | null;
+  readonly currency: string;
+  readonly url: string;
+  readonly lastVerified: string | null;
 }
 
 export interface SearchOptions {
-  query: string;
+  readonly query: string;
   limit?: number;
   offset?: number;
   filter?: string[];
@@ -34,6 +42,24 @@ export interface SearchResult {
   totalHits: number;
   processingTimeMs: number;
   query: string;
+}
+
+async function waitForTaskCompletion(client: MeiliSearch, taskUid: number): Promise<void> {
+  const waitable = client as WaitableClient;
+
+  if (waitable.waitForTask) {
+    await waitable.waitForTask(taskUid, { timeout: 10_000, interval: 100 });
+    return;
+  }
+
+  if (!waitable.getTask) {
+    return;
+  }
+
+  const task = await waitable.getTask(taskUid);
+  if (!["succeeded", "failed", "canceled"].includes(task.status)) {
+    throw new Error(`Search task ${taskUid} did not reach terminal state`);
+  }
 }
 
 export function createMeilisearchClient(config: MeilisearchConfig): MeiliSearch {
@@ -49,8 +75,8 @@ export async function indexPrograms(
   indexName = "programs",
 ): Promise<void> {
   const index = client.index(indexName);
-
-  await index.addDocuments(programs, { primaryKey: "id" });
+  const task = await index.addDocuments(programs, { primaryKey: "id" });
+  await waitForTaskCompletion(client, task.taskUid);
 }
 
 export async function searchPrograms(
@@ -78,7 +104,7 @@ export async function searchPrograms(
 export async function configureIndex(client: MeiliSearch, indexName = "programs"): Promise<void> {
   const index = client.index(indexName);
 
-  await index.updateSettings({
+  const task = await index.updateSettings({
     searchableAttributes: ["name", "description", "jurisdiction", "categories"],
     filterableAttributes: ["status", "country", "jurisdiction", "categories", "benefitType"],
     sortableAttributes: ["name", "lastVerified", "maxAmount"],
@@ -90,6 +116,7 @@ export async function configureIndex(client: MeiliSearch, indexName = "programs"
       },
     },
   });
+  await waitForTaskCompletion(client, task.taskUid);
 }
 
 export async function deleteProgram(
@@ -98,7 +125,8 @@ export async function deleteProgram(
   indexName = "programs",
 ): Promise<void> {
   const index = client.index(indexName);
-  await index.deleteDocument(programId);
+  const task = await index.deleteDocument(programId);
+  await waitForTaskCompletion(client, task.taskUid);
 }
 
 export async function healthCheck(client: MeiliSearch): Promise<boolean> {

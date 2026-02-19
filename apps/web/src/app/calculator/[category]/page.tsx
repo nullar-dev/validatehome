@@ -46,6 +46,13 @@ const defaultCategoryInfo = {
   icon: "calculator",
 };
 
+function safeJsonLd(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/<\/script/gi, "<\\/script");
+}
+
 export default async function CalculatorPage({ params }: Props) {
   const { category } = await params;
   const info = categoryInfo[category] ?? defaultCategoryInfo;
@@ -67,7 +74,7 @@ export default async function CalculatorPage({ params }: Props) {
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
       <main className="mx-auto max-w-4xl px-4 py-12">
         <nav className="mb-8 flex gap-2 text-sm">

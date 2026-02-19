@@ -1,9 +1,8 @@
 import type { CountryCode, Program } from "@validatehome/db";
-import { createDb, jurisdictionRepo, programRepo } from "@validatehome/db";
+import { jurisdictionRepo, programRepo } from "@validatehome/db";
 import { createBadRequestProblem } from "@validatehome/shared";
 import { Hono } from "hono";
-
-const db = createDb(process.env.DATABASE_URL ?? "postgresql://localhost:5432/validatehome");
+import { db } from "../db.js";
 
 export const searchRoutes = new Hono()
   .get("/", async (c) => {
@@ -41,7 +40,11 @@ export const searchRoutes = new Hono()
       }
 
       const repo = programRepo(db);
-      const result = await repo.findAll(filters, { page, limit });
+      const shouldFilterByQuery = q.trim().length > 0;
+      const result = await repo.findAll(
+        filters,
+        shouldFilterByQuery ? { page: 1, limit: 1000 } : { page, limit },
+      );
       const programs: Program[] = Array.isArray(result) ? result : result.data;
 
       let filtered = programs;
@@ -55,9 +58,13 @@ export const searchRoutes = new Hono()
         );
       }
 
+      const paged = shouldFilterByQuery
+        ? filtered.slice((page - 1) * limit, page * limit)
+        : filtered;
+
       const jurisdictionRepoFn = jurisdictionRepo(db);
       const withJurisdiction = await Promise.all(
-        filtered.map(async (p) => {
+        paged.map(async (p) => {
           const j = await jurisdictionRepoFn.findById(p.jurisdictionId);
           return { ...p, jurisdiction: j };
         }),
@@ -67,7 +74,7 @@ export const searchRoutes = new Hono()
         success: true,
         data: withJurisdiction,
         meta: {
-          total: withJurisdiction.length,
+          total: filtered.length,
           page,
           limit,
           filters: { q, country, status, category },
@@ -127,6 +134,6 @@ export const searchRoutes = new Hono()
 
       return c.json({ success: true, data: suggestions });
     } catch {
-      return c.json({ success: true, data: [] });
+      return c.json({ success: false, data: [], meta: { error: "Suggest failed" } }, 500);
     }
   });

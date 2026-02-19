@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { apiKeyMiddleware } from "./middleware/api-key-auth.js";
-import { csrfMiddleware } from "./middleware/csrf.js";
+import { csrfMiddleware, isAllowedOrigin } from "./middleware/csrf.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { rateLimitMiddleware } from "./middleware/rate-limit.js";
 import { traceMiddleware } from "./middleware/trace.js";
@@ -25,7 +25,7 @@ const apiRoutes = new Hono()
 
 const docsRoutes = new Hono()
   .get("/openapi.json", (c) => c.json(openapiSpec))
-  .get("/docs", (c) =>
+  .get("/", (c) =>
     c.html(`
       <!DOCTYPE html>
       <html>
@@ -47,8 +47,29 @@ const docsRoutes = new Hono()
 export const app = new Hono()
   .use("*", traceMiddleware())
   .use("*", logger())
-  .use("*", cors())
-  .use("*", secureHeaders())
+  .use(
+    "*",
+    cors({
+      origin: (origin) => {
+        if (!origin) {
+          return "";
+        }
+        return isAllowedOrigin(origin) ? origin : "";
+      },
+    }),
+  )
+  .use(
+    "*",
+    secureHeaders({
+      contentSecurityPolicy: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://validatehome.com"],
+      },
+    }),
+  )
   .use("*", errorHandler())
   .route("/v1", apiRoutes)
   .route("/v1/docs", docsRoutes)

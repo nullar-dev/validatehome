@@ -1,12 +1,5 @@
-import {
-  type Benefit,
-  benefitRepo,
-  createDb,
-  type Jurisdiction,
-  jurisdictionRepo,
-  type Program,
-  programRepo,
-} from "@validatehome/db";
+import { type Benefit, createDb, type Program, programRepo } from "@validatehome/db";
+import { benefits, jurisdictions } from "@validatehome/db/schema";
 import {
   configureIndex,
   createMeilisearchClient,
@@ -14,6 +7,7 @@ import {
   indexPrograms,
   type ProgramDocument,
 } from "@validatehome/shared";
+import { inArray } from "drizzle-orm";
 
 const db = createDb(process.env.DATABASE_URL ?? "postgresql://localhost:5432/validatehome");
 
@@ -30,15 +24,14 @@ function getCurrency(country?: string): string {
   return currencyMap[country ?? ""] ?? "USD";
 }
 
-async function mapProgramToDocument(program: Program): Promise<ProgramDocument | null> {
-  const jurisdictionRepoFn = jurisdictionRepo(db);
-  const jurisdiction = (await jurisdictionRepoFn.findById(program.jurisdictionId)) as
-    | Jurisdiction
-    | undefined;
-
-  const benefitRepoFn = benefitRepo(db);
-  const benefits = (await benefitRepoFn.findByProgram(program.id)) as Benefit[];
-  const primaryBenefit = benefits[0];
+function mapProgramToDocument(
+  program: Program,
+  jurisdictionMap: Map<string, { country: string; name: string; isoCode: string | null }>,
+  benefitMap: Map<string, Benefit[]>,
+): ProgramDocument {
+  const jurisdiction = jurisdictionMap.get(program.jurisdictionId);
+  const programBenefits = benefitMap.get(program.id) ?? [];
+  const primaryBenefit = programBenefits[0];
 
   return {
     id: program.id,
@@ -55,6 +48,14 @@ async function mapProgramToDocument(program: Program): Promise<ProgramDocument |
     url: `https://validatehome.com/programs/${jurisdiction?.country?.toLowerCase() ?? "us"}/${program.slug}`,
     lastVerified: program.lastVerifiedAt?.toISOString() ?? null,
   };
+}
+
+function chunkArray<T>(items: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += chunkSize) {
+    chunks.push(items.slice(i, i + chunkSize));
+  }
+  return chunks;
 }
 
 export async function syncProgramsToSearch(): Promise<{ indexed: number; errors: number }> {
@@ -74,20 +75,65 @@ export async function syncProgramsToSearch(): Promise<{ indexed: number; errors:
   const result = await repo.findAll();
   const programs = Array.isArray(result) ? result : result.data;
 
-  let indexed = 0;
-  let errors = 0;
+  const jurisdictionRows = await db
+    .select({
+      id: jurisdictions.id,
+      country: jurisdictions.country,
+      name: jurisdictions.name,
+      isoCode: jurisdictions.isoCode,
+    })
+    .from(jurisdictions);
+  const jurisdictionMap = new Map(
+    jurisdictionRows.map((row) => [
+      row.id,
+      { country: row.country, name: row.name, isoCode: row.isoCode },
+    ]),
+  );
 
+  const programIds = programs.map((program) => program.id);
+  const benefitRows = programIds.length
+    ? await db
+        .select({
+          programId: benefits.programId,
+          type: benefits.type,
+          maxAmount: benefits.maxAmount,
+          percentage: benefits.percentage,
+          currency: benefits.currency,
+          description: benefits.description,
+        })
+        .from(benefits)
+        .where(inArray(benefits.programId, programIds))
+    : [];
+
+  const benefitMap = new Map<string, Benefit[]>();
+  for (const row of benefitRows) {
+    const current = benefitMap.get(row.programId) ?? [];
+    current.push(row as Benefit);
+    benefitMap.set(row.programId, current);
+  }
+
+  const documents: ProgramDocument[] = [];
+  let errors = 0;
   for (const program of programs) {
     try {
-      const doc = await mapProgramToDocument(program);
-      if (doc) {
-        await indexPrograms(client, [doc]);
-        indexed++;
-      }
-    } catch (_error) {
+      documents.push(mapProgramToDocument(program, jurisdictionMap, benefitMap));
+    } catch (error) {
+      console.error("Failed to map program for indexing", { programId: program.id, error });
       errors++;
     }
   }
+
+  let indexed = 0;
+  for (const batch of chunkArray(documents, 250)) {
+    try {
+      await indexPrograms(client, batch);
+      indexed += batch.length;
+    } catch (error) {
+      console.error("Failed to index batch", { batchSize: batch.length, error });
+      errors += batch.length;
+    }
+  }
+
   return { indexed, errors };
 }
 

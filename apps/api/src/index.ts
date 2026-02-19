@@ -1,9 +1,6 @@
 import { serve } from "@hono/node-server";
-import { createDb } from "@validatehome/db";
 import { app } from "./app.js";
-
-const connectionString = process.env.DATABASE_URL ?? "postgresql://localhost:5432/validatehome";
-export const db = createDb(connectionString);
+import { db } from "./db.js";
 
 const port = Number(process.env.PORT ?? 4000);
 
@@ -25,9 +22,12 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
   console.log(`\n${signal} received, starting graceful shutdown...`);
 
   // Stop accepting new connections
-  server.close(() => {
-    // biome-ignore lint/suspicious/noConsole: shutdown complete
-    console.log("HTTP server closed");
+  const closeServer = new Promise<void>((resolve) => {
+    server.close(() => {
+      // biome-ignore lint/suspicious/noConsole: shutdown complete
+      console.log("HTTP server closed");
+      resolve();
+    });
   });
 
   // Close database connections
@@ -41,13 +41,14 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
   }
 
   // Give ongoing requests time to complete (max 10 seconds)
-  setTimeout(() => {
+  const shutdownTimer = setTimeout(() => {
     // biome-ignore lint/suspicious/noConsole: forced shutdown
     console.log("Forcing shutdown after timeout");
     process.exit(0);
   }, 10000);
 
-  // Exit immediately if all connections closed cleanly
+  await closeServer;
+  clearTimeout(shutdownTimer);
   process.exit(0);
 };
 

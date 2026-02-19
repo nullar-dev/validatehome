@@ -101,11 +101,20 @@ test.describe("Accessibility Tests", () => {
     await page.goto(BASE_URL);
 
     await page.keyboard.press("Tab");
-    const focusedElement = page.locator(":focus");
-    await expect(focusedElement).toBeVisible();
+    const firstFocusedElement = page.locator(":focus");
+    await expect(firstFocusedElement).toBeVisible();
+    const firstFocusIdentity = await firstFocusedElement.evaluate(
+      (el) => `${el.tagName}#${el.id}.${el.className}`,
+    );
 
     await page.keyboard.press("Tab");
-    await expect(focusedElement).toBeVisible();
+    const secondFocusedElement = page.locator(":focus");
+    await expect(secondFocusedElement).toBeVisible();
+    const secondFocusIdentity = await secondFocusedElement.evaluate(
+      (el) => `${el.tagName}#${el.id}.${el.className}`,
+    );
+
+    expect(firstFocusIdentity).not.toEqual(secondFocusIdentity);
   });
 
   test("body text and background meet minimum contrast", async ({ page }) => {
@@ -150,9 +159,6 @@ test.describe("Accessibility Tests", () => {
     const headings = page.locator("h1, h2");
     const count = await headings.count();
     expect(count).toBeGreaterThan(0);
-
-    if (count >= 2) {
-      await expect(headings.first()).toHaveJSProperty("tagName", "H1");
-    }
+    await expect(headings.first()).toHaveJSProperty("tagName", "H1");
   });
 });
