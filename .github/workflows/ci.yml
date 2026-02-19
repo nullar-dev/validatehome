@@ -137,7 +137,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@cbda486c350de24ee53c4e0914505dc3d9aa3aad # v3.0.0
+        uses: SonarSource/sonarcloud-github-action@eb211723266fe8e83102bac7361f0a05c3ac1d1b # v3.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
