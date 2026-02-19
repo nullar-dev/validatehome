@@ -8,10 +8,11 @@ import type { Context, Next } from "hono";
 
 /**
  * Generates a unique trace ID for request tracking.
- * @returns A trace ID string with timestamp and random suffix
+ * Uses cryptographically secure random UUID.
+ * @returns A trace ID string with UUID
  */
 function generateTraceId(): string {
-  return `trace-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  return `trace-${crypto.randomUUID()}`;
 }
 
 /**
