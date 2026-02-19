@@ -197,15 +197,28 @@ jobs:
         run: |
           cd infra
           docker compose up -d
-          sleep 10
+          for i in {1..30}; do
+            if docker compose ps --status running | grep -q validatehome-db; then
+              break
+            fi
+            sleep 1
+          done
+          docker compose exec -T validatehome-db pg_isready -U validatehome
 
       - name: Run migrations
-        run: pnpm db:migrate || true
+        run: pnpm db:migrate
 
       - name: Start web app
         run: |
           pnpm --filter @validatehome/web dev &
-          sleep 15
+          for i in {1..45}; do
+            if curl -fsS http://localhost:3000 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Web app did not become ready in time"
+          exit 1
 
       - name: Install Playwright browsers
         run: npx playwright install chromium
@@ -225,7 +238,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: read
-    needs: [build, smoke]
+    needs: [build, smoke, lighthouse]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -242,7 +255,8 @@ jobs:
       - name: Generate SBOM
         run: |
           npm install -g @cyclonedx/cyclonedx-npm
-          npx cyclonedx-npm --output-format JSON --output-file sbom.json --omit dev || true
+          npx cyclonedx-npm --output-format JSON --output-file sbom.json --omit dev
+          test -s sbom.json
 
       - name: Upload SBOM
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -250,6 +264,31 @@ jobs:
           name: sbom
           path: sbom.json
           retention-days: 30
+
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    needs: [build]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build web app
+        run: pnpm --filter @validatehome/web build
+
+      - name: Run Lighthouse CI
+        run: pnpm dlx @lhci/cli@0.14.0 autorun --config=.lighthouserc.json
 
       - name: Build provenance
         run: |

@@ -9,8 +9,11 @@ export async function GET(request: Request) {
   try {
     const response = await fetch(`${API_URL}/search?${query}`);
     const data = await response.json();
-    return NextResponse.json(data);
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status });
+    }
+    return NextResponse.json(data, { status: response.status });
   } catch {
-    return NextResponse.json({ success: false, data: [], meta: {} }, { status: 500 });
+    return NextResponse.json({ success: false, data: null, meta: {} }, { status: 500 });
   }
 }

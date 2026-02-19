@@ -7,31 +7,31 @@ interface Props {
 
 const geoData: Record<string, Record<string, { name: string; type: string }>> = {
   us: {
-    CA: { name: "California", type: "state" },
-    NY: { name: "New York", type: "state" },
-    TX: { name: "Texas", type: "state" },
-    FL: { name: "Florida", type: "state" },
-    MA: { name: "Massachusetts", type: "state" },
+    ca: { name: "California", type: "state" },
+    ny: { name: "New York", type: "state" },
+    tx: { name: "Texas", type: "state" },
+    fl: { name: "Florida", type: "state" },
+    ma: { name: "Massachusetts", type: "state" },
   },
   uk: {
-    London: { name: "London", type: "region" },
-    "Greater-London": { name: "Greater London", type: "region" },
-    Scotland: { name: "Scotland", type: "nation" },
-    Wales: { name: "Wales", type: "nation" },
+    london: { name: "London", type: "region" },
+    "greater-london": { name: "Greater London", type: "region" },
+    scotland: { name: "Scotland", type: "nation" },
+    wales: { name: "Wales", type: "nation" },
   },
   au: {
-    NSW: { name: "New South Wales", type: "state" },
-    VIC: { name: "Victoria", type: "state" },
-    QLD: { name: "Queensland", type: "state" },
-    WA: { name: "Western Australia", type: "state" },
-    SA: { name: "South Australia", type: "state" },
+    nsw: { name: "New South Wales", type: "state" },
+    vic: { name: "Victoria", type: "state" },
+    qld: { name: "Queensland", type: "state" },
+    wa: { name: "Western Australia", type: "state" },
+    sa: { name: "South Australia", type: "state" },
   },
   ca: {
-    ON: { name: "Ontario", type: "province" },
-    BC: { name: "British Columbia", type: "province" },
-    QC: { name: "Quebec", type: "province" },
-    AB: { name: "Alberta", type: "province" },
-    NS: { name: "Nova Scotia", type: "province" },
+    on: { name: "Ontario", type: "province" },
+    bc: { name: "British Columbia", type: "province" },
+    qc: { name: "Quebec", type: "province" },
+    ab: { name: "Alberta", type: "province" },
+    ns: { name: "Nova Scotia", type: "province" },
   },
 };
 
@@ -58,19 +58,17 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { country, geo } = await params;
   const countryName = countryNames[country] ?? country;
-  const geoInfo = geoData[country]?.[geo.toUpperCase()];
+  const geoInfo = geoData[country]?.[geo.toLowerCase()];
   const geoName = geoInfo?.name ?? geo;
+  const canonicalPath = `/local/${country}/${geo.toLowerCase()}`;
 
   return {
     title: `${geoName} Energy Rebates & Incentives - ${countryName}`,
     description: `Find ${geoName} home energy rebates, incentives, and grants in ${countryName}. Heat pumps, solar, and more.`,
     alternates: {
+      canonical: canonicalPath,
       languages: {
-        "en-US": `/local/us/${geo.toLowerCase()}`,
-        "en-GB": `/local/uk/${geo.toLowerCase()}`,
-        "en-AU": `/local/au/${geo.toLowerCase()}`,
-        "en-CA": `/local/ca/${geo.toLowerCase()}`,
-        "x-default": `/local/us/${geo.toLowerCase()}`,
+        "x-default": canonicalPath,
       },
     },
   };
@@ -79,7 +77,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function LocalPage({ params }: Props) {
   const { country, geo } = await params;
   const countryName = countryNames[country] ?? country;
-  const geoInfo = geoData[country]?.[geo.toUpperCase()];
+  const geoInfo = geoData[country]?.[geo.toLowerCase()];
   const geoName = geoInfo?.name ?? geo;
 
   return (

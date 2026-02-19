@@ -26,14 +26,15 @@ These items are production-critical and should be implemented first.
 
 ### 1. PATCH Endpoint - Partial Updates
 
-**Category:** API Design  
-**Status:** ❌ Not Implemented  
-**Priority:** HIGH  
+**Category:** API Design
+**Status:** ❌ Not Implemented
+**Priority:** HIGH
 
 **Description:**
 Add PATCH support for partial resource updates instead of full PUT. This follows REST best practices (Azure API Design Guide).
 
 **Implementation:**
+
 ```typescript
 // Add to programs route
 .patch("/:id", async (c) => {
@@ -49,9 +50,9 @@ Add PATCH support for partial resource updates instead of full PUT. This follows
 
 ### 2. Error Boundaries
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** HIGH  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** HIGH
 
 **Description:**
 Implement Next.js error.js conventions for proper error handling. Required for production-grade React applications.
@@ -67,23 +68,26 @@ Implement Next.js error.js conventions for proper error handling. Required for p
 
 ### 3. Request Size Limits
 
-**Category:** Security  
-**Status:** ❌ Not Implemented  
-**Priority:** HIGH  
+**Category:** Security
+**Status:** ❌ Not Implemented
+**Priority:** HIGH
 
 **Description:**
 Add request body size limits to prevent DoS attacks and memory exhaustion.
 
 **Implementation:**
+
 ```typescript
-// In Hono app
-app.use("*", async (c, next) => {
-  const contentLength = c.req.header("content-length");
-  if (contentLength && parseInt(contentLength) > 1_000_000) {
-    return c.json({ error: "Payload too large" }, 413);
-  }
-  await next();
-});
+// In Hono app (streaming-safe body limits)
+import { bodyLimit } from "hono/body-limit";
+
+app.use(
+  "*",
+  bodyLimit({
+    maxSize: 1_000_000,
+    onError: (c) => c.json({ error: "Payload too large" }, 413),
+  }),
+);
 ```
 
 **Cost:** $0 (free to implement)
@@ -92,14 +96,15 @@ app.use("*", async (c, next) => {
 
 ### 4. Graceful Shutdown
 
-**Category:** Reliability  
-**Status:** ✅ Implemented (2026-02-19)  
+**Category:** Reliability
+**Status:** ✅ Implemented (2026-02-19)
 **Priority:** ~~HIGH~~ DONE
 
 **Description:**
 Implement proper signal handling for graceful shutdown. Prevents data loss and connection leaks.
 
-**Implementation:**
+**Reference (already implemented in `apps/api/src/index.ts`):**
+
 ```typescript
 // In api/src/index.ts - IMPLEMENTED
 const gracefulShutdown = async (signal: string): Promise<void> => {
@@ -119,9 +124,9 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 ### 5. Terraform / IaC
 
-**Category:** DevOps  
-**Status:** ❌ Not Implemented  
-**Priority:** HIGH  
+**Category:** DevOps
+**Status:** ❌ Not Implemented
+**Priority:** HIGH
 
 **Description:**
 Infrastructure as Code for reproducible deployments. Essential for production.
@@ -137,9 +142,9 @@ Infrastructure as Code for reproducible deployments. Essential for production.
 
 ### 6. Database Backup/Restore Procedures
 
-**Category:** Reliability  
-**Status:** ❌ Not Implemented  
-**Priority:** HIGH  
+**Category:** Reliability
+**Status:** ❌ Not Implemented
+**Priority:** HIGH
 
 **Description:**
 Automated backup procedures and tested restore processes.
@@ -153,9 +158,9 @@ Automated backup procedures and tested restore processes.
 
 ### 7. Circuit Breaker (API Client)
 
-**Category:** Reliability  
-**Status:** ❌ Not Implemented  
-**Priority:** HIGH  
+**Category:** Reliability
+**Status:** ❌ Not Implemented
+**Priority:** HIGH
 
 **Description:**
 Implement circuit breaker pattern to prevent cascade failures when external services (Meilisearch) are down.
@@ -163,6 +168,7 @@ Implement circuit breaker pattern to prevent cascade failures when external serv
 **Cost:** $0 (libraries like `opossum` are free)
 
 **Recommendation:**
+
 ```bash
 pnpm add opossum
 ```
@@ -171,9 +177,9 @@ pnpm add opossum
 
 ### 8. Disaster Recovery Runbook
 
-**Category:** Reliability  
-**Status:** ❌ Not Implemented  
-**Priority:** HIGH  
+**Category:** Reliability
+**Status:** ❌ Not Implemented
+**Priority:** HIGH
 
 **Description:**
 Documented procedures for:
@@ -189,16 +195,16 @@ Documented procedures for:
 
 ### 9. OpenTelemetry Integration
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Distributed tracing for debugging production issues.
 
 **Cost:**
 - **Development:** Free (local Jaeger)
-- **Production:** 
+- **Production:**
   - Grafana Cloud (free tier): 50GB traces/month
   - DataDog: Paid ($23+/month)
   - **Recommendation:** Use Grafana Tempo or Jaeger (free)
@@ -207,27 +213,29 @@ Distributed tracing for debugging production issues.
 
 ### 10. Image Optimization Config
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Configure next/image for optimized image delivery.
 
 **Implementation:**
+
 ```typescript
 // apps/web/next.config.ts
 export default defineNextConfig({
   images: {
     remotePatterns: [
-      { hostname: "**" }
+      { protocol: "https", hostname: "images.validatehome.com" },
+      { protocol: "https", hostname: "cdn.validatehome.com" }
     ],
     formats: ["image/avif", "image/webp"],
   },
 })
 ```
 
-**Cost:** 
+**Cost:**
 - **Vercel:** Built-in (pro includes image optimization)
 - **Self-hosted:** Uses sharp (free)
 
@@ -235,12 +243,28 @@ export default defineNextConfig({
 
 ### 11. Environment Validation
 
-**Category:** Security  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** Security
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Fail fast if required environment variables are missing.
+
+**Implementation:**
+
+```typescript
+// apps/api/src/env.ts
+import { z } from "zod";
+
+const envSchema = z.object({
+  DATABASE_URL: z.string().url(),
+  PORT: z.coerce.number().int().positive().default(4000),
+  API_KEY_SECRET: z.string().min(32),
+  NODE_ENV: z.enum(["development", "test", "production"]),
+});
+
+export const env = envSchema.parse(process.env);
+```
 
 **Cost:** $0 (free to implement)
 
@@ -248,9 +272,9 @@ Fail fast if required environment variables are missing.
 
 ### 12. CSP Headers
 
-**Category:** Security  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** Security
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Content Security Policy headers for XSS protection.
@@ -261,9 +285,9 @@ Content Security Policy headers for XSS protection.
 
 ### 13. Middleware Setup
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Edge middleware for:
@@ -272,7 +296,7 @@ Edge middleware for:
 - A/B testing
 - Rate limiting (at edge)
 
-**Cost:** 
+**Cost:**
 - **Vercel Edge:** Included in pro plan
 - **Self-hosted:** Free (using Next.js middleware)
 
@@ -280,9 +304,9 @@ Edge middleware for:
 
 ### 14. Server Actions
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Use Server Actions for form submissions instead of API routes.
@@ -293,9 +317,9 @@ Use Server Actions for form submissions instead of API routes.
 
 ### 15. Loading States
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Add loading.tsx for route-based loading states.
@@ -304,26 +328,13 @@ Add loading.tsx for route-based loading states.
 
 ---
 
-### 16. not-found.tsx
-
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
-
-**Description:**
-Custom 404 pages with proper metadata.
-
-**Cost:** $0 (Next.js built-in)
-
----
-
 ## 📦 Phase 3: Medium Priority (Session 3)
 
-### 17. HATEOAS - Hypermedia Links
+### 16. HATEOAS - Hypermedia Links
 
-**Category:** API Design  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** API Design
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Add `_links` to API responses for HATEOAS compliance.
@@ -332,11 +343,11 @@ Add `_links` to API responses for HATEOAS compliance.
 
 ---
 
-### 18. Async Operations (202 Accepted)
+### 17. Async Operations (202 Accepted)
 
-**Category:** API Design  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** API Design
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 For long-running operations, return 202 with Location header for polling.
@@ -345,11 +356,11 @@ For long-running operations, return 202 with Location header for polling.
 
 ---
 
-### 19. Bulk Operations
+### 18. Bulk Operations
 
-**Category:** API Design  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** API Design
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Batch endpoints for multiple updates.
@@ -358,11 +369,11 @@ Batch endpoints for multiple updates.
 
 ---
 
-### 20. Graceful Deprecation (Sunset Headers)
+### 19. Graceful Deprecation (Sunset Headers)
 
-**Category:** API Design  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** API Design
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Add Deprecation and Sunset headers to API responses.
@@ -371,11 +382,11 @@ Add Deprecation and Sunset headers to API responses.
 
 ---
 
-### 21. HTTP Caching (ETag/Last-Modified)
+### 20. HTTP Caching (ETag/Last-Modified)
 
-**Category:** API Design  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** API Design
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Implement conditional requests for GET endpoints.
@@ -384,11 +395,11 @@ Implement conditional requests for GET endpoints.
 
 ---
 
-### 22. Secrets Rotation
+### 21. Secrets Rotation
 
-**Category:** DevOps  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** DevOps
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Rotate API keys and database credentials automatically.
@@ -400,11 +411,11 @@ Rotate API keys and database credentials automatically.
 
 ---
 
-### 23. Database Migration Strategy
+### 22. Database Migration Strategy
 
-**Category:** DevOps  
-**Status:** ⚠️ Partial  
-**Priority:** MEDIUM  
+**Category:** DevOps
+**Status:** ⚠️ Partial
+**Priority:** MEDIUM
 
 **Description:**
 Add migration rollback procedures and zero-downtime migrations.
@@ -413,11 +424,11 @@ Add migration rollback procedures and zero-downtime migrations.
 
 ---
 
-### 24. API Changelog
+### 23. API Changelog
 
-**Category:** Documentation  
-**Status:** ❌ Not Implemented  
-**Priority:** MEDIUM  
+**Category:** Documentation
+**Status:** ❌ Not Implemented
+**Priority:** MEDIUM
 
 **Description:**
 Maintain CHANGELOG.md with API changes.
@@ -428,11 +439,11 @@ Maintain CHANGELOG.md with API changes.
 
 ## 🎯 Phase 4: Low Priority (Session 4)
 
-### 25. Field Selection (?fields=)
+### 24. Field Selection (?fields=)
 
-**Category:** API Design  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** API Design
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Allow clients to select specific fields to reduce payload.
@@ -441,11 +452,11 @@ Allow clients to select specific fields to reduce payload.
 
 ---
 
-### 26. Media Type Versioning
+### 25. Media Type Versioning
 
-**Category:** API Design  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** API Design
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Accept header-based API versioning.
@@ -454,11 +465,11 @@ Accept header-based API versioning.
 
 ---
 
-### 27. Content Negotiation
+### 26. Content Negotiation
 
-**Category:** API Design  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** API Design
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Support multiple response formats (JSON, XML).
@@ -467,11 +478,11 @@ Support multiple response formats (JSON, XML).
 
 ---
 
-### 28. Route Groups
+### 27. Route Groups
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Use (group) folders for route organization.
@@ -480,11 +491,11 @@ Use (group) folders for route organization.
 
 ---
 
-### 29. Parallel Routes
+### 28. Parallel Routes
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Advanced routing for modals/dialogs.
@@ -493,11 +504,11 @@ Advanced routing for modals/dialogs.
 
 ---
 
-### 30. Intercepting Routes
+### 29. Intercepting Routes
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Intercept routes for nested UI patterns.
@@ -506,11 +517,11 @@ Intercept routes for nested UI patterns.
 
 ---
 
-### 31. Draft Mode
+### 30. Draft Mode
 
-**Category:** Next.js Frontend  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** Next.js Frontend
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Preview mode for CMS content.
@@ -519,11 +530,11 @@ Preview mode for CMS content.
 
 ---
 
-### 32. Feature Flags
+### 31. Feature Flags
 
-**Category:** Security  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** Security
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Gradual rollout system.
@@ -535,11 +546,11 @@ Gradual rollout system.
 
 ---
 
-### 33. Postman Collection
+### 32. Postman Collection
 
-**Category:** Documentation  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** Documentation
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Export API specs for API consumers.
@@ -548,11 +559,11 @@ Export API specs for API consumers.
 
 ---
 
-### 34. ADRs (Architecture Decision Records)
+### 33. ADRs (Architecture Decision Records)
 
-**Category:** Documentation  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** Documentation
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Document architectural decisions.
@@ -561,11 +572,11 @@ Document architectural decisions.
 
 ---
 
-### 35. Deployment Strategy
+### 34. Deployment Strategy
 
-**Category:** DevOps  
-**Status:** ❌ Not Implemented  
-**Priority:** LOW  
+**Category:** DevOps
+**Status:** ❌ Not Implemented
+**Priority:** LOW
 
 **Description:**
 Blue/green or canary deployments.
@@ -580,6 +591,7 @@ Blue/green or canary deployments.
 ## 📋 Implementation Plan
 
 ### Session 1 (Critical - ~2 hours)
+
 - [ ] PATCH endpoint for programs
 - [ ] Error boundaries (error.tsx, not-found.tsx)
 - [ ] Request size limits
@@ -590,6 +602,7 @@ Blue/green or canary deployments.
 - [ ] Disaster recovery runbook
 
 ### Session 2 (High - ~2 hours)
+
 - [ ] OpenTelemetry setup
 - [ ] Image optimization config
 - [ ] Environment validation
@@ -599,6 +612,7 @@ Blue/green or canary deployments.
 - [ ] Loading states
 
 ### Session 3 (Medium - ~2 hours)
+
 - [ ] HATEOAS links
 - [ ] Async operations (202)
 - [ ] Bulk operations
@@ -609,6 +623,7 @@ Blue/green or canary deployments.
 - [ ] API Changelog
 
 ### Session 4 (Low - ~1 hour)
+
 - [ ] Field selection
 - [ ] Media type versioning
 - [ ] Content negotiation
@@ -635,7 +650,7 @@ Blue/green or canary deployments.
 | Secrets | ✅ | - | Vault free tier |
 | Feature Flags | ⚠️ | - | Unleash free |
 
-**Total mandatory cost:** $0  
+**Total mandatory cost:** $0
 **Optional paid features:** ~$0-50/month
 
 ---

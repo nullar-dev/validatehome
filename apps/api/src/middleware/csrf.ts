@@ -1,11 +1,13 @@
 import type { Context, Next } from "hono";
 
-const ALLOWED_ORIGINS = new Set([
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "https://validatehome.com",
-  "https://www.validatehome.com",
-]);
+const DEFAULT_ALLOWED_ORIGINS =
+  "http://localhost:3000,http://localhost:3001,https://validatehome.com,https://www.validatehome.com";
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_ORIGINS ?? DEFAULT_ALLOWED_ORIGINS)
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+);
 
 export async function csrfMiddleware(c: Context, next: Next): Promise<Response | undefined> {
   const method = c.req.method.toUpperCase();
@@ -18,7 +20,14 @@ export async function csrfMiddleware(c: Context, next: Next): Promise<Response |
   const origin = c.req.header("origin");
   const referer = c.req.header("referer");
 
-  const requestOrigin = origin ?? (referer ? new URL(referer).origin : null);
+  let requestOrigin: string | null = origin ?? null;
+  if (!requestOrigin && referer) {
+    try {
+      requestOrigin = new URL(referer).origin;
+    } catch {
+      requestOrigin = null;
+    }
+  }
 
   if (!requestOrigin) {
     return c.json(
@@ -38,7 +47,7 @@ export async function csrfMiddleware(c: Context, next: Next): Promise<Response |
         type: "https://validatehome.com/errors/csrf",
         title: "CSRF Validation Failed",
         status: 403,
-        detail: `Origin ${requestOrigin} not allowed`,
+        detail: "Request origin not allowed",
       },
       403,
     );

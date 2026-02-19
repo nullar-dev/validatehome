@@ -3,17 +3,15 @@ import { expect, test } from "@playwright/test";
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
 test.describe("ValidateHome E2E Tests", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto(BASE_URL);
-  });
-
   test.describe("Home page", () => {
     test("loads successfully", async ({ page }) => {
+      await page.goto(BASE_URL);
       await expect(page).toHaveTitle(/ValidateHome/);
       await expect(page.locator("h1")).toContainText("Home Upgrade Rebates");
     });
 
     test("has country links", async ({ page }) => {
+      await page.goto(BASE_URL);
       await expect(page.locator('a[href="/programs/us"]')).toBeVisible();
       await expect(page.locator('a[href="/programs/uk"]')).toBeVisible();
       await expect(page.locator('a[href="/programs/au"]')).toBeVisible();
@@ -21,6 +19,7 @@ test.describe("ValidateHome E2E Tests", () => {
     });
 
     test("has calculator link", async ({ page }) => {
+      await page.goto(BASE_URL);
       await expect(page.locator('a[href="/calculator/heat_pump"]')).toBeVisible();
     });
   });
@@ -57,8 +56,9 @@ test.describe("ValidateHome E2E Tests", () => {
 
   test.describe("Accessibility", () => {
     test("home page is accessible", async ({ page }) => {
+      await page.goto(BASE_URL);
       await expect(page.locator("main")).toBeVisible();
-      await expect(page.locator("h1")).toHaveRole("heading");
+      await expect(page.locator("h1")).toHaveCount(1);
     });
 
     test("has proper heading hierarchy", async ({ page }) => {
@@ -69,8 +69,11 @@ test.describe("ValidateHome E2E Tests", () => {
 
     test("has skip link for accessibility", async ({ page }) => {
       await page.goto(BASE_URL);
-      const links = page.locator("a");
-      await expect(links.first()).toBeVisible();
+      await page.keyboard.press("Tab");
+      const focused = page.locator(":focus");
+      await expect(focused).toBeVisible();
+      const href = await focused.getAttribute("href");
+      expect(href?.startsWith("#")).toBeTruthy();
     });
   });
 

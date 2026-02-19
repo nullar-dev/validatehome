@@ -112,6 +112,42 @@ export const programRoutes = new Hono()
       return c.json({ success: false, data: [], meta: { error: "Failed to fetch programs" } }, 500);
     }
   })
+  .get("/changes", async (c) => {
+    const since = c.req.query("since");
+
+    if (since && Number.isNaN(Date.parse(since))) {
+      const problem = createBadRequestProblem(
+        "Invalid 'since' parameter. Must be a valid ISO date string.",
+      );
+      return c.json(problem, 400);
+    }
+
+    try {
+      const repo = programRepo(db);
+      const sinceDate = since ? new Date(since) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      const result = await repo.findAll({}, { page: 1, limit: 1000 });
+      const allPrograms: Program[] = Array.isArray(result) ? (result as Program[]) : result.data;
+
+      const changes = allPrograms
+        .filter((p: Program) => p.updatedAt >= sinceDate)
+        .map((p: Program) => ({
+          id: p.id,
+          slug: p.slug,
+          name: p.name,
+          status: p.status,
+          updatedAt: p.updatedAt,
+        }));
+
+      return c.json({
+        success: true,
+        data: changes,
+        meta: { since: sinceDate.toISOString(), count: changes.length },
+      });
+    } catch (_error) {
+      return c.json({ success: false, data: [], meta: { error: "Failed to fetch changes" } }, 500);
+    }
+  })
   .get("/:idOrSlug", async (c) => {
     const idOrSlug = c.req.param("idOrSlug");
 
@@ -198,42 +234,6 @@ export const programRoutes = new Hono()
         { success: false, data: [], meta: { error: "Failed to fetch program history" } },
         500,
       );
-    }
-  })
-  .get("/changes", async (c) => {
-    const since = c.req.query("since");
-
-    if (since && Number.isNaN(Date.parse(since))) {
-      const problem = createBadRequestProblem(
-        "Invalid 'since' parameter. Must be a valid ISO date string.",
-      );
-      return c.json(problem, 400);
-    }
-
-    try {
-      const repo = programRepo(db);
-      const sinceDate = since ? new Date(since) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-      const result = await repo.findAll({}, { page: 1, limit: 1000 });
-      const allPrograms: Program[] = Array.isArray(result) ? (result as Program[]) : result.data;
-
-      const changes = allPrograms
-        .filter((p: Program) => p.updatedAt >= sinceDate)
-        .map((p: Program) => ({
-          id: p.id,
-          slug: p.slug,
-          name: p.name,
-          status: p.status,
-          updatedAt: p.updatedAt,
-        }));
-
-      return c.json({
-        success: true,
-        data: changes,
-        meta: { since: sinceDate.toISOString(), count: changes.length },
-      });
-    } catch (_error) {
-      return c.json({ success: false, data: [], meta: { error: "Failed to fetch changes" } }, 500);
     }
   })
   .post("/", async (c) => {

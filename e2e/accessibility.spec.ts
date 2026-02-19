@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
@@ -15,6 +15,50 @@ const pages = [
   { name: "US California Local", path: "/local/us/ca" },
 ];
 
+async function assertInteractiveElementsHaveNames(page: Page): Promise<void> {
+  const buttons = page.locator("button");
+  const buttonCount = await buttons.count();
+  for (let i = 0; i < buttonCount; i++) {
+    const button = buttons.nth(i);
+    const isVisible = await button.isVisible();
+    if (isVisible) {
+      const hasAccessibleName =
+        (await button.getAttribute("aria-label")) !== null ||
+        (await button.getAttribute("aria-labelledby")) !== null ||
+        ((await button.textContent())?.trim() ?? "") !== "";
+      expect(hasAccessibleName).toBe(true);
+    }
+  }
+
+  const links = page.locator("a");
+  const linkCount = await links.count();
+  for (let i = 0; i < Math.min(linkCount, 20); i++) {
+    const link = links.nth(i);
+    const isVisible = await link.isVisible();
+    if (isVisible) {
+      const hasAccessibleName =
+        (await link.getAttribute("aria-label")) !== null ||
+        (await link.getAttribute("aria-labelledby")) !== null ||
+        ((await link.textContent())?.trim() ?? "") !== "";
+      expect(hasAccessibleName).toBe(true);
+    }
+  }
+}
+
+async function assertImagesHaveAltText(page: Page): Promise<void> {
+  const images = page.locator("img");
+  const imageCount = await images.count();
+  for (let i = 0; i < imageCount; i++) {
+    const img = images.nth(i);
+    const isVisible = await img.isVisible();
+    if (isVisible) {
+      const alt = await img.getAttribute("alt");
+      const role = await img.getAttribute("role");
+      expect(alt !== null || role === "presentation").toBe(true);
+    }
+  }
+}
+
 test.describe("Accessibility Tests", () => {
   for (const page of pages) {
     test(`${page.name} page passes basic accessibility checks`, async ({ page: p }) => {
@@ -28,45 +72,8 @@ test.describe("Accessibility Tests", () => {
       const h1Count = await h1.count();
       expect(h1Count).toBe(1);
 
-      const buttons = p.locator("button");
-      const buttonCount = await buttons.count();
-      for (let i = 0; i < buttonCount; i++) {
-        const button = buttons.nth(i);
-        const isVisible = await button.isVisible();
-        if (isVisible) {
-          const hasAccessibleName =
-            (await button.getAttribute("aria-label")) !== null ||
-            (await button.getAttribute("aria-labelledby")) !== null ||
-            (await button.textContent()) !== "";
-          expect(hasAccessibleName).toBe(true);
-        }
-      }
-
-      const images = p.locator("img");
-      const imageCount = await images.count();
-      for (let i = 0; i < imageCount; i++) {
-        const img = images.nth(i);
-        const isVisible = await img.isVisible();
-        if (isVisible) {
-          const alt = await img.getAttribute("alt");
-          const role = await img.getAttribute("role");
-          expect(alt !== null || role === "presentation").toBe(true);
-        }
-      }
-
-      const links = p.locator("a");
-      const linkCount = await links.count();
-      for (let i = 0; i < Math.min(linkCount, 20); i++) {
-        const link = links.nth(i);
-        const isVisible = await link.isVisible();
-        if (isVisible) {
-          const hasAccessibleName =
-            (await link.getAttribute("aria-label")) !== null ||
-            (await link.getAttribute("aria-labelledby")) !== null ||
-            (await link.textContent()) !== "";
-          expect(hasAccessibleName).toBe(true);
-        }
-      }
+      await assertInteractiveElementsHaveNames(p);
+      await assertImagesHaveAltText(p);
     });
   }
 
@@ -101,7 +108,7 @@ test.describe("Accessibility Tests", () => {
     await expect(focusedElement).toBeVisible();
   });
 
-  test("color contrast is sufficient", async ({ page }) => {
+  test("body text and background meet minimum contrast", async ({ page }) => {
     await page.goto(BASE_URL);
 
     const body = page.locator("body");
@@ -113,19 +120,39 @@ test.describe("Accessibility Tests", () => {
       };
     });
 
-    expect(bodyStyles.color).toBeTruthy();
-    expect(bodyStyles.backgroundColor).toBeTruthy();
+    const parseRgb = (value: string): [number, number, number] => {
+      const match = value.match(/\d+/g);
+      if (!match || match.length < 3) {
+        return [0, 0, 0];
+      }
+      return [Number(match[0]), Number(match[1]), Number(match[2])];
+    };
+    const toLuminance = (rgb: [number, number, number]): number => {
+      const normalized = rgb.map((channel) => {
+        const c = channel / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * normalized[0] + 0.7152 * normalized[1] + 0.0722 * normalized[2];
+    };
+
+    const textRgb = parseRgb(bodyStyles.color);
+    const bgRgb = parseRgb(bodyStyles.backgroundColor);
+    const textL = toLuminance(textRgb);
+    const bgL = toLuminance(bgRgb);
+    const contrastRatio = (Math.max(textL, bgL) + 0.05) / (Math.min(textL, bgL) + 0.05);
+
+    expect(contrastRatio).toBeGreaterThanOrEqual(4.5);
   });
 
   test("heading hierarchy is correct", async ({ page }) => {
     await page.goto(BASE_URL);
 
-    const h1Count = await page.locator("h1").count();
-    expect(h1Count).toBeGreaterThanOrEqual(1);
+    const headings = page.locator("h1, h2");
+    const count = await headings.count();
+    expect(count).toBeGreaterThan(0);
 
-    const h2Count = await page.locator("h2").count();
-    if (h2Count > 0) {
-      expect(h1Count).toBeGreaterThanOrEqual(1);
+    if (count >= 2) {
+      await expect(headings.first()).toHaveJSProperty("tagName", "H1");
     }
   });
 });

@@ -1,6 +1,14 @@
 {
   "ci": {
     "collect": {
+      "startServerCommand": "pnpm --filter @validatehome/web start",
+      "startServerReadyPattern": "Ready",
+      "url": [
+        "http://localhost:3000/",
+        "http://localhost:3000/programs",
+        "http://localhost:3000/search",
+        "http://localhost:3000/calculator/heat_pump"
+      ],
       "numberOfRuns": 3,
       "settings": {
         "preset": "desktop"

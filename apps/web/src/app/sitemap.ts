@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 
-const baseUrl = "https://validatehome.com";
+const BASE_URL = "https://validatehome.com";
 
-const localPages = [
+const LOCAL_PAGES = [
   { country: "us", geo: "ca" },
   { country: "us", geo: "ny" },
   { country: "us", geo: "ma" },
@@ -213,19 +213,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
   const staticUrls = [
-    { url: baseUrl, priority: 1, changeFrequency: "daily" as const },
-    { url: `${baseUrl}/programs`, priority: 0.9, changeFrequency: "daily" as const },
-    { url: `${baseUrl}/programs/us`, priority: 0.9, changeFrequency: "daily" as const },
-    { url: `${baseUrl}/programs/uk`, priority: 0.9, changeFrequency: "daily" as const },
-    { url: `${baseUrl}/programs/au`, priority: 0.9, changeFrequency: "daily" as const },
-    { url: `${baseUrl}/programs/ca`, priority: 0.9, changeFrequency: "daily" as const },
-    { url: `${baseUrl}/search`, priority: 0.8, changeFrequency: "daily" as const },
-    { url: `${baseUrl}/calculator/heat_pump`, priority: 0.8, changeFrequency: "weekly" as const },
-    { url: `${baseUrl}/calculator/solar`, priority: 0.8, changeFrequency: "weekly" as const },
+    { url: BASE_URL, priority: 1, changeFrequency: "daily" as const },
+    { url: `${BASE_URL}/programs`, priority: 0.9, changeFrequency: "daily" as const },
+    { url: `${BASE_URL}/programs/us`, priority: 0.9, changeFrequency: "daily" as const },
+    { url: `${BASE_URL}/programs/uk`, priority: 0.9, changeFrequency: "daily" as const },
+    { url: `${BASE_URL}/programs/au`, priority: 0.9, changeFrequency: "daily" as const },
+    { url: `${BASE_URL}/programs/ca`, priority: 0.9, changeFrequency: "daily" as const },
+    { url: `${BASE_URL}/search`, priority: 0.8, changeFrequency: "daily" as const },
+    { url: `${BASE_URL}/calculator/heat_pump`, priority: 0.8, changeFrequency: "weekly" as const },
+    { url: `${BASE_URL}/calculator/solar`, priority: 0.8, changeFrequency: "weekly" as const },
   ];
 
-  const localUrls = localPages.map((page) => ({
-    url: `${baseUrl}/local/${page.country}/${page.geo}`,
+  const uniqueLocalPages = Array.from(
+    new Map(LOCAL_PAGES.map((page) => [`${page.country}/${page.geo}`, page])).values(),
+  );
+
+  const localUrls = uniqueLocalPages.map((page) => ({
+    url: `${BASE_URL}/local/${page.country}/${page.geo}`,
     lastModified: now,
     changeFrequency: "weekly" as const,
     priority: 0.7,

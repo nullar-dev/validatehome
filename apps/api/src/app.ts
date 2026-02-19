@@ -9,6 +9,7 @@ import { rateLimitMiddleware } from "./middleware/rate-limit.js";
 import { traceMiddleware } from "./middleware/trace.js";
 import openapiSpec from "./openapi.json" with { type: "json" };
 import { calculatorRoutes } from "./routes/calculator.js";
+import { diffRoutes } from "./routes/diffs.js";
 import { healthRoutes } from "./routes/health.js";
 import { programRoutes } from "./routes/programs.js";
 import { searchRoutes } from "./routes/search.js";
@@ -18,6 +19,7 @@ const apiRoutes = new Hono()
   .use("*", apiKeyMiddleware)
   .use("*", rateLimitMiddleware({ maxRequests: 1000, windowMs: 60000 }))
   .route("/programs", programRoutes)
+  .route("/diffs", diffRoutes)
   .route("/calculator", calculatorRoutes)
   .route("/search", searchRoutes);
 

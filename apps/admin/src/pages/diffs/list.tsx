@@ -1,6 +1,6 @@
 import { List, useTable } from "@refinedev/antd";
 import type { IResourceComponentsProps } from "@refinedev/core";
-import { Button, Descriptions, Modal, Space, Table, Tag } from "antd";
+import { Button, Descriptions, Modal, message, Popconfirm, Space, Table, Tag } from "antd";
 import { useState } from "react";
 
 interface DiffRecord {
@@ -17,6 +17,8 @@ interface DiffRecord {
 
 export const DiffList: React.FC<IResourceComponentsProps> = () => {
   const [selectedDiff, setSelectedDiff] = useState<DiffRecord | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const apiBaseUrl = import.meta.env.VITE_API_URL ?? "http://localhost:4000/v1";
 
   const { tableProps } = useTable({
     resource: "diffs",
@@ -39,9 +41,45 @@ export const DiffList: React.FC<IResourceComponentsProps> = () => {
     },
   });
 
-  const handleApprove = async (_id: string) => {};
+  const handleApprove = async (id: string) => {
+    setActionLoadingId(id);
+    try {
+      const response = await fetch(`${apiBaseUrl}/diffs/${id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to approve diff");
+      }
+      message.success("Diff approved");
+      window.location.reload();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Unknown error";
+      message.error(`Approve failed: ${detail}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
-  const handleReject = async (_id: string) => {};
+  const handleReject = async (id: string) => {
+    setActionLoadingId(id);
+    try {
+      const response = await fetch(`${apiBaseUrl}/diffs/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to reject diff");
+      }
+      message.success("Diff rejected");
+      window.location.reload();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Unknown error";
+      message.error(`Reject failed: ${detail}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   return (
     <>
@@ -67,12 +105,25 @@ export const DiffList: React.FC<IResourceComponentsProps> = () => {
             title="Actions"
             render={(_, record: DiffRecord) => (
               <Space>
-                <Button size="small" type="primary" onClick={() => handleApprove(record.id)}>
-                  Approve
+                <Button
+                  size="small"
+                  type="primary"
+                  loading={actionLoadingId === record.id}
+                  onClick={() => handleApprove(record.id)}
+                >
+                  {actionLoadingId === record.id ? "Approving..." : "Approve"}
                 </Button>
-                <Button size="small" danger onClick={() => handleReject(record.id)}>
-                  Reject
-                </Button>
+                <Popconfirm
+                  title="Reject this diff?"
+                  description="This action marks the diff as rejected and is not reversible."
+                  okText="Reject"
+                  cancelText="Cancel"
+                  onConfirm={() => handleReject(record.id)}
+                >
+                  <Button size="small" danger loading={actionLoadingId === record.id}>
+                    Reject
+                  </Button>
+                </Popconfirm>
                 <Button size="small" onClick={() => setSelectedDiff(record)}>
                   Details
                 </Button>
@@ -87,12 +138,22 @@ export const DiffList: React.FC<IResourceComponentsProps> = () => {
         open={!!selectedDiff}
         onCancel={() => setSelectedDiff(null)}
         footer={[
-          <Button key="reject" danger onClick={() => selectedDiff && handleReject(selectedDiff.id)}>
-            Reject
-          </Button>,
+          <Popconfirm
+            key="reject"
+            title="Reject this diff?"
+            description="This action marks the diff as rejected and is not reversible."
+            okText="Reject"
+            cancelText="Cancel"
+            onConfirm={() => selectedDiff && handleReject(selectedDiff.id)}
+          >
+            <Button danger loading={actionLoadingId === selectedDiff?.id}>
+              Reject
+            </Button>
+          </Popconfirm>,
           <Button
             key="approve"
             type="primary"
+            loading={actionLoadingId === selectedDiff?.id}
             onClick={() => selectedDiff && handleApprove(selectedDiff.id)}
           >
             Approve

@@ -3,27 +3,30 @@ import Link from "next/link";
 
 export const revalidate = 3600;
 
-const countryNames: Record<string, string> = {
-  us: "United States",
-  uk: "United Kingdom",
-  au: "Australia",
-  ca: "Canada",
-};
-
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Home Energy Rebates by Country",
     description:
       "Browse available home energy upgrade rebates, incentives, and grants across the US, UK, Australia, and Canada.",
+    alternates: {
+      canonical: "https://validatehome.com/programs",
+      languages: {
+        "en-US": "https://validatehome.com/programs/us",
+        "en-GB": "https://validatehome.com/programs/uk",
+        "en-AU": "https://validatehome.com/programs/au",
+        "en-CA": "https://validatehome.com/programs/ca",
+        "x-default": "https://validatehome.com/programs",
+      },
+    },
   };
 }
 
 export default function ProgramsPage() {
   const countries = [
-    { code: "us", name: countryNames.us, flag: "🇺🇸", programs: "IRS 25C, 25D, State Rebates" },
-    { code: "uk", name: countryNames.uk, flag: "🇬🇧", programs: "BUS, ECO4, GBIS" },
-    { code: "au", name: countryNames.au, flag: "🇦🇺", programs: "Solar Credits, State Programs" },
-    { code: "ca", name: countryNames.ca, flag: "🇨🇦", programs: "Greener Homes, Provincial" },
+    { code: "us", name: "United States", flag: "🇺🇸", programs: "IRS 25C, 25D, State Rebates" },
+    { code: "uk", name: "United Kingdom", flag: "🇬🇧", programs: "BUS, ECO4, GBIS" },
+    { code: "au", name: "Australia", flag: "🇦🇺", programs: "Solar Credits, State Programs" },
+    { code: "ca", name: "Canada", flag: "🇨🇦", programs: "Greener Homes, Provincial" },
   ];
 
   return (

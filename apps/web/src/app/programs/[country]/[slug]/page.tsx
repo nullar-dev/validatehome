@@ -88,8 +88,13 @@ const statusLabels: Record<string, string> = {
 
 export default async function ProgramPage({ params }: Props) {
   const { country, slug } = await params;
+  const dbUrl = process.env.DATABASE_URL;
 
-  const db = createDb(process.env.DATABASE_URL ?? "");
+  if (!dbUrl) {
+    notFound();
+  }
+
+  const db = createDb(dbUrl);
 
   try {
     const countryCode = country.toUpperCase();
@@ -212,14 +217,21 @@ export default async function ProgramPage({ params }: Props) {
                       maxAmount: string | null;
                       description: string | null;
                     };
+                    const benefitTypeLabel =
+                      b.type === "tax_credit"
+                        ? "Tax Credit"
+                        : b.type === "rebate"
+                          ? "Rebate"
+                          : b.type === "grant"
+                            ? "Grant"
+                            : "Benefit";
+                    const percentageLabel = b.percentage !== null ? ` - ${b.percentage}%` : "";
+                    const maxAmountLabel =
+                      b.maxAmount !== null ? ` up to $${Number(b.maxAmount).toLocaleString()}` : "";
                     return (
                       <li key={b.id} className="rounded-md bg-muted p-3">
                         <div className="font-medium">
-                          {b.type === "tax_credit" && "Tax Credit"}
-                          {b.type === "rebate" && "Rebate"}
-                          {b.type === "grant" && "Grant"}
-                          {b.percentage && ` - ${b.percentage}%`}
-                          {b.maxAmount && ` up to $${Number(b.maxAmount).toLocaleString()}`}
+                          {`${benefitTypeLabel}${percentageLabel}${maxAmountLabel}`}
                         </div>
                         <div className="mt-1 text-sm text-muted-foreground">{b.description}</div>
                       </li>

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+const API_BASE_URL = process.env.E2E_API_URL ?? "http://localhost:4000";
 
 test.describe("Smoke Tests", () => {
   test("home page loads", async ({ page }) => {
@@ -50,8 +51,7 @@ test.describe("Smoke Tests", () => {
   });
 
   test("API health check passes", async ({ page }) => {
-    const apiPort = process.env.API_PORT ?? "4000";
-    const response = await page.request.get(`http://localhost:${apiPort}/health`);
+    const response = await page.request.get(`${API_BASE_URL}/health`);
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data.status).toBe("ok");
