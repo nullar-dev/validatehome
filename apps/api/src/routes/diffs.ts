@@ -1,11 +1,12 @@
 import { createDb } from "@validatehome/db";
 import { diffs } from "@validatehome/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 
 const db = createDb(process.env.DATABASE_URL ?? "postgresql://localhost:5432/validatehome");
 
 type JsonRecord = Record<string, unknown>;
+type ReviewAction = "approved" | "rejected";
 
 function toDiffPayload(changes: unknown): { oldValue: string; newValue: string } {
   if (!changes || typeof changes !== "object") {
@@ -33,6 +34,27 @@ function toChangeType(diffType: string): "status" | "budget" | "deadline" | "ben
   if (diffType === "visual") return "status";
   if (diffType === "semantic") return "benefit";
   return "budget";
+}
+
+async function markDiffReviewed(id: string, action: ReviewAction): Promise<boolean> {
+  const [updated] = await db
+    .update(diffs)
+    .set({ reviewed: true, reviewedBy: `admin:${action}`, reviewedAt: new Date() })
+    .where(eq(diffs.id, id))
+    .returning();
+
+  return Boolean(updated);
+}
+
+async function handleReviewAction(c: Context, action: ReviewAction) {
+  const id = c.req.param("id");
+  const updated = await markDiffReviewed(id, action);
+
+  if (!updated) {
+    return c.json({ error: "Diff not found" }, 404);
+  }
+
+  return c.json({ success: true, data: { id } });
 }
 
 export const diffRoutes = new Hono()
@@ -92,28 +114,8 @@ export const diffRoutes = new Hono()
     return c.json({ data, total: countResult?.count ?? data.length });
   })
   .post("/:id/approve", async (c) => {
-    const id = c.req.param("id");
-    const [updated] = await db
-      .update(diffs)
-      .set({ reviewed: true, reviewedBy: "admin:approved", reviewedAt: new Date() })
-      .where(eq(diffs.id, id))
-      .returning();
-
-    if (!updated) {
-      return c.json({ error: "Diff not found" }, 404);
-    }
-    return c.json({ success: true, data: { id } });
+    return handleReviewAction(c, "approved");
   })
   .post("/:id/reject", async (c) => {
-    const id = c.req.param("id");
-    const [updated] = await db
-      .update(diffs)
-      .set({ reviewed: true, reviewedBy: "admin:rejected", reviewedAt: new Date() })
-      .where(eq(diffs.id, id))
-      .returning();
-
-    if (!updated) {
-      return c.json({ error: "Diff not found" }, 404);
-    }
-    return c.json({ success: true, data: { id } });
+    return handleReviewAction(c, "rejected");
   });
