@@ -2,12 +2,24 @@ import { describe, expect, it } from "vitest";
 import {
   calculateSavingsPercentage,
   clamp,
+  createBadRequestProblem,
+  createConflictProblem,
+  createForbiddenProblem,
+  createInternalErrorProblem,
+  createNotFoundProblem,
+  createProblemDetail,
+  createServiceUnavailableProblem,
+  createTooManyRequestsProblem,
+  createUnauthorizedProblem,
+  createValidationProblem,
   formatCurrency,
   getCurrencyForCountry,
+  isProblemDetail,
   isValidPostalCode,
   normalizePostalCode,
+  PROBLEM_TYPES,
   slugify,
-} from "../utils/index.js";
+} from "../index.js";
 
 describe("isValidPostalCode", () => {
   it("validates US ZIP codes", () => {
@@ -106,5 +118,161 @@ describe("formatCurrency", () => {
   it("formats GBP amounts", () => {
     const result = formatCurrency(5000, "GBP", "UK");
     expect(result).toContain("5,000");
+  });
+});
+
+describe("createProblemDetail", () => {
+  it("creates a problem detail with required fields", () => {
+    const result = createProblemDetail({
+      type: PROBLEM_TYPES.BAD_REQUEST,
+      title: "Bad Request",
+      status: 400,
+      detail: "Invalid input",
+    });
+
+    expect(result.type).toBe(PROBLEM_TYPES.BAD_REQUEST);
+    expect(result.title).toBe("Bad Request");
+    expect(result.status).toBe(400);
+    expect(result.detail).toBe("Invalid input");
+  });
+
+  it("includes optional fields when provided", () => {
+    const result = createProblemDetail({
+      type: PROBLEM_TYPES.BAD_REQUEST,
+      title: "Bad Request",
+      status: 400,
+      detail: "Invalid input",
+      instance: "/api/v1/programs",
+      traceId: "trace-123",
+      errorCode: "ERR_001",
+    });
+
+    expect(result.instance).toBe("/api/v1/programs");
+    expect(result.traceId).toBe("trace-123");
+    expect(result.errorCode).toBe("ERR_001");
+  });
+
+  it("spreads extensions into the object", () => {
+    const result = createProblemDetail({
+      type: PROBLEM_TYPES.BAD_REQUEST,
+      title: "Bad Request",
+      status: 400,
+      detail: "Invalid input",
+      extensions: { extraField: "value", nested: { a: 1 } },
+    });
+
+    expect(result.extraField).toBe("value");
+    expect(result.nested).toEqual({ a: 1 });
+  });
+});
+
+describe("isProblemDetail", () => {
+  it("returns true for valid problem detail", () => {
+    const obj = {
+      type: "https://example.com/problem",
+      title: "Bad Request",
+      status: 400,
+      detail: "Invalid input",
+    };
+    expect(isProblemDetail(obj)).toBe(true);
+  });
+
+  it("returns false for null", () => {
+    expect(isProblemDetail(null)).toBe(false);
+  });
+
+  it("returns false for undefined", () => {
+    expect(isProblemDetail(undefined)).toBe(false);
+  });
+
+  it("returns false for non-object", () => {
+    expect(isProblemDetail("string")).toBe(false);
+    expect(isProblemDetail(123)).toBe(false);
+  });
+
+  it("returns false when missing required fields", () => {
+    expect(isProblemDetail({ type: "test" })).toBe(false);
+    expect(isProblemDetail({ title: "test" })).toBe(false);
+    expect(isProblemDetail({ status: 400 })).toBe(false);
+    expect(isProblemDetail({ detail: "test" })).toBe(false);
+  });
+});
+
+describe("createBadRequestProblem", () => {
+  it("creates 400 problem", () => {
+    const result = createBadRequestProblem("Invalid input");
+    expect(result.status).toBe(400);
+    expect(result.type).toBe(PROBLEM_TYPES.BAD_REQUEST);
+  });
+
+  it("includes traceId when provided", () => {
+    const result = createBadRequestProblem("Invalid input", "trace-123");
+    expect(result.traceId).toBe("trace-123");
+  });
+});
+
+describe("createNotFoundProblem", () => {
+  it("creates 404 problem", () => {
+    const result = createNotFoundProblem("Program not found");
+    expect(result.status).toBe(404);
+    expect(result.type).toBe(PROBLEM_TYPES.NOT_FOUND);
+  });
+});
+
+describe("createUnauthorizedProblem", () => {
+  it("creates 401 problem", () => {
+    const result = createUnauthorizedProblem("Not authenticated");
+    expect(result.status).toBe(401);
+    expect(result.type).toBe(PROBLEM_TYPES.UNAUTHORIZED);
+  });
+});
+
+describe("createForbiddenProblem", () => {
+  it("creates 403 problem", () => {
+    const result = createForbiddenProblem("Access denied");
+    expect(result.status).toBe(403);
+    expect(result.type).toBe(PROBLEM_TYPES.FORBIDDEN);
+  });
+});
+
+describe("createConflictProblem", () => {
+  it("creates 409 problem", () => {
+    const result = createConflictProblem("Resource already exists");
+    expect(result.status).toBe(409);
+    expect(result.type).toBe(PROBLEM_TYPES.CONFLICT);
+  });
+});
+
+describe("createServiceUnavailableProblem", () => {
+  it("creates 503 problem", () => {
+    const result = createServiceUnavailableProblem("Service temporarily unavailable");
+    expect(result.status).toBe(503);
+    expect(result.type).toBe(PROBLEM_TYPES.SERVICE_UNAVAILABLE);
+  });
+});
+
+describe("createTooManyRequestsProblem", () => {
+  it("creates 429 problem", () => {
+    const result = createTooManyRequestsProblem("Rate limit exceeded");
+    expect(result.status).toBe(429);
+    expect(result.type).toBe(PROBLEM_TYPES.RATE_LIMIT_EXCEEDED);
+  });
+});
+
+describe("createInternalErrorProblem", () => {
+  it("creates 500 problem", () => {
+    const result = createInternalErrorProblem("Internal server error");
+    expect(result.status).toBe(500);
+    expect(result.type).toBe(PROBLEM_TYPES.INTERNAL_SERVER_ERROR);
+  });
+});
+
+describe("createValidationProblem", () => {
+  it("creates 422 problem with errors", () => {
+    const errors = [{ field: "name", message: "Name is required" }];
+    const result = createValidationProblem(errors);
+    expect(result.status).toBe(422);
+    expect(result.type).toBe(PROBLEM_TYPES.VALIDATION_ERROR);
+    expect(result.errors).toEqual(errors);
   });
 });

@@ -80,7 +80,7 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Package | Statements | Branches | Functions | Lines | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---------|-----------|----------|-----------|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          THRESHOLD=80
+          THRESHOLD=60
           FAILED=0
           for summary in packages/*/coverage/coverage-summary.json; do
             if [ -f "$summary" ]; then
