@@ -1,12 +1,14 @@
 import { RefineThemes, ThemedLayout, useNotificationProvider } from "@refinedev/antd";
-import { Refine } from "@refinedev/core";
+import { Authenticated, Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/react-router";
 import dataProvider from "@refinedev/simple-rest";
 import { App as AntdApp, ConfigProvider } from "antd";
 import { BrowserRouter, Route, Routes } from "react-router";
 import "@refinedev/antd/dist/reset.css";
+import { authProvider } from "./auth-provider.js";
 import { RulesList, RuleTester } from "./components/rules/index.js";
 import { DiffList } from "./pages/diffs/list.js";
+import { LoginPage } from "./pages/login/index.js";
 import { ProgramCreate } from "./pages/programs/create.js";
 import { ProgramEdit } from "./pages/programs/edit.js";
 import { ProgramList } from "./pages/programs/list.js";
@@ -35,6 +37,7 @@ export function App() {
           <Refine
             routerProvider={routerProvider}
             dataProvider={dataProvider(API_URL)}
+            authProvider={authProvider}
             notificationProvider={useNotificationProvider()}
             resources={[
               {
@@ -60,7 +63,14 @@ export function App() {
             ]}
           >
             <Routes>
-              <Route element={<ThemedLayout Title={AppTitle} />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                element={
+                  <Authenticated fallback={<LoginPage />} key="auth-layout">
+                    <ThemedLayout Title={AppTitle} />
+                  </Authenticated>
+                }
+              >
                 <Route index element={<DashboardPage />} />
                 <Route path="programs" element={<ProgramList />} />
                 <Route path="programs/create" element={<ProgramCreate />} />

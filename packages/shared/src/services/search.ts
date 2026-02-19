@@ -1,5 +1,6 @@
 import { MeiliSearch } from "meilisearch";
 
+/** Extended MeiliSearch client type that supports task waiting */
 type WaitableClient = MeiliSearch & {
   waitForTask?: (
     taskUid: number,
@@ -8,12 +9,17 @@ type WaitableClient = MeiliSearch & {
   getTask?: (taskUid: number) => Promise<{ status: string }>;
 };
 
+/** Configuration for connecting to MeiliSearch */
 export interface MeilisearchConfig {
+  /** The host URL of the MeiliSearch instance */
   readonly host: string;
+  /** Optional API key for authentication */
   readonly apiKey?: string;
 }
 
+/** Country codes supported in search */
 export type SearchCountryCode = "US" | "UK" | "AU" | "CA" | "unknown";
+/** Program status values in search index */
 export type SearchProgramStatus =
   | "open"
   | "waitlist"
@@ -22,7 +28,9 @@ export type SearchProgramStatus =
   | "closed"
   | "coming_soon"
   | "unknown";
+/** Currency codes in search results */
 export type SearchCurrencyCode = "USD" | "GBP" | "AUD" | "CAD" | "unknown";
+/** Benefit types in search results */
 export type SearchBenefitType =
   | "tax_credit"
   | "rebate"
@@ -31,6 +39,7 @@ export type SearchBenefitType =
   | "financing"
   | "unknown";
 
+/** Document structure for programs in MeiliSearch index */
 export interface ProgramDocument {
   readonly id: string;
   readonly name: string;
@@ -47,6 +56,7 @@ export interface ProgramDocument {
   readonly lastVerified: string | null;
 }
 
+/** Options for searching programs */
 export interface SearchOptions {
   readonly query: string;
   readonly limit?: number;
@@ -55,6 +65,7 @@ export interface SearchOptions {
   readonly sort?: string[];
 }
 
+/** Result of a search query */
 export interface SearchResult {
   readonly hits: readonly ProgramDocument[];
   readonly totalHits: number;
@@ -62,6 +73,12 @@ export interface SearchResult {
   readonly query: string;
 }
 
+/**
+ * Waits for a MeiliSearch task to complete or reach a terminal state.
+ * @param client - The MeiliSearch client
+ * @param taskUid - The task UID to wait for
+ * @throws Error if task does not reach terminal state within timeout
+ */
 async function waitForTaskCompletion(client: MeiliSearch, taskUid: number): Promise<void> {
   const waitable = client as WaitableClient;
 
@@ -80,6 +97,11 @@ async function waitForTaskCompletion(client: MeiliSearch, taskUid: number): Prom
   }
 }
 
+/**
+ * Creates a configured MeiliSearch client.
+ * @param config - The MeiliSearch configuration
+ * @returns A configured MeiliSearch client instance
+ */
 export function createMeilisearchClient(config: MeilisearchConfig): MeiliSearch {
   return new MeiliSearch({
     host: config.host,
@@ -87,6 +109,13 @@ export function createMeilisearchClient(config: MeilisearchConfig): MeiliSearch 
   });
 }
 
+/**
+ * Indexes program documents into MeiliSearch.
+ * @param client - The MeiliSearch client
+ * @param programs - Array of program documents to index
+ * @param indexName - The name of the index (default: "programs")
+ * @returns Promise that resolves when indexing is complete
+ */
 export async function indexPrograms(
   client: MeiliSearch,
   programs: ProgramDocument[],
@@ -97,6 +126,13 @@ export async function indexPrograms(
   await waitForTaskCompletion(client, task.taskUid);
 }
 
+/**
+ * Searches for programs in MeiliSearch.
+ * @param client - The MeiliSearch client
+ * @param options - Search options including query, pagination, filters, and sorting
+ * @param indexName - The name of the index (default: "programs")
+ * @returns Search result with hits, total count, and metadata
+ */
 export async function searchPrograms(
   client: MeiliSearch,
   options: SearchOptions,
@@ -119,6 +155,12 @@ export async function searchPrograms(
   };
 }
 
+/**
+ * Configures MeiliSearch index settings for program search.
+ * @param client - The MeiliSearch client
+ * @param indexName - The name of the index (default: "programs")
+ * @returns Promise that resolves when configuration is complete
+ */
 export async function configureIndex(client: MeiliSearch, indexName = "programs"): Promise<void> {
   const index = client.index(indexName);
 
@@ -137,16 +179,35 @@ export async function configureIndex(client: MeiliSearch, indexName = "programs"
   await waitForTaskCompletion(client, task.taskUid);
 }
 
+/**
+ * Deletes a program document from the MeiliSearch index.
+ * @param client - The MeiliSearch client
+ * @param programId - The ID of the program to delete
+ * @param indexName - The name of the index (default: "programs")
+ * @returns Promise that resolves when deletion is complete
+ */
+/**
+ * Deletes a program document from the MeiliSearch index.
+ * @param client - The MeiliSearch client
+ * @param programId - The ID of the program to delete
+ * @param indexName - The name of the index (default: "programs")
+ * @returns Promise that resolves when deletion is complete
+ */
 export async function deleteProgram(
   client: MeiliSearch,
-  programId: string,
+  _programId: string,
   indexName = "programs",
 ): Promise<void> {
   const index = client.index(indexName);
-  const task = await index.deleteDocument(programId);
+  const task = await index.deleteDocument(_programId);
   await waitForTaskCompletion(client, task.taskUid);
 }
 
+/**
+ * Checks the health of the MeiliSearch instance.
+ * @param client - The MeiliSearch client
+ * @returns True if the service is available and healthy, false otherwise
+ */
 export async function healthCheck(client: MeiliSearch): Promise<boolean> {
   try {
     const health = await client.health();

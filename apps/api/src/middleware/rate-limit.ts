@@ -3,11 +3,13 @@ import { sql } from "drizzle-orm";
 import type { Context } from "hono";
 import { db } from "../db.js";
 
+/** Record containing rate limit count and reset timestamp */
 interface RateLimitRecord {
   count: number;
   resetTime: Date;
 }
 
+/** Default rate limit window in milliseconds (1 minute) */
 const WINDOW_MS = 60 * 1000;
 
 const initRateLimitStore = db.execute(sql`
@@ -18,11 +20,21 @@ const initRateLimitStore = db.execute(sql`
   )
 `);
 
+/** Configuration options for rate limiting */
 export interface RateLimitConfig {
+  /** Time window in milliseconds (default: 60000) */
   windowMs?: number;
+  /** Maximum requests allowed in the window (default: 100) */
   maxRequests?: number;
 }
 
+/**
+ * Increments the rate limit counter for a given key and returns the current record.
+ * Uses database for persistence to work across multiple instances.
+ * @param key - The rate limit bucket key (typically API key or IP)
+ * @param windowMs - The time window in milliseconds
+ * @returns The current rate limit record with count and reset time
+ */
 async function incrementRateLimit(key: string, windowMs: number): Promise<RateLimitRecord> {
   await initRateLimitStore;
 

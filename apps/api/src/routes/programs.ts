@@ -11,6 +11,12 @@ import { Hono } from "hono";
 import { db } from "../db.js";
 import { commonSchemas } from "../middleware/validation.js";
 
+/**
+ * Builds a record of field updates from the request body for program mutations.
+ * Separates fields by type (string, numeric, date) for proper database updates.
+ * @param body - The parsed request body
+ * @returns A record of field names to updated values
+ */
 function buildProgramUpdates(body: Record<string, unknown>): Record<string, unknown> {
   const updates: Record<string, unknown> = {};
   const stringFields = ["name", "slug", "description", "status", "programUrl"];

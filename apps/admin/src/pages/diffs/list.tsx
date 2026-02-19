@@ -2,6 +2,7 @@ import { List, useTable } from "@refinedev/antd";
 import type { IResourceComponentsProps } from "@refinedev/core";
 import { Button, Descriptions, Modal, message, Popconfirm, Space, Table, Tag } from "antd";
 import { useState } from "react";
+import { useAuditLog } from "../../hooks/use-audit-log.js";
 import { apiFetch } from "../../lib/api-client.js";
 
 interface DiffRecord {
@@ -19,6 +20,7 @@ interface DiffRecord {
 export function DiffList(_props: IResourceComponentsProps) {
   const [selectedDiff, setSelectedDiff] = useState<DiffRecord | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const { logDiffApprove, logDiffReject, logDiffView } = useAuditLog();
 
   const { tableProps } = useTable({
     resource: "diffs",
@@ -48,6 +50,7 @@ export function DiffList(_props: IResourceComponentsProps) {
       if (!response.ok) {
         throw new Error("Failed to approve diff");
       }
+      await logDiffApprove(id, { status: "approved" });
       message.success("Diff approved");
       window.location.reload();
     } catch (error) {
@@ -65,6 +68,7 @@ export function DiffList(_props: IResourceComponentsProps) {
       if (!response.ok) {
         throw new Error("Failed to reject diff");
       }
+      await logDiffReject(id, { status: "rejected" });
       message.success("Diff rejected");
       window.location.reload();
     } catch (error) {
@@ -118,7 +122,13 @@ export function DiffList(_props: IResourceComponentsProps) {
                     Reject
                   </Button>
                 </Popconfirm>
-                <Button size="small" onClick={() => setSelectedDiff(record)}>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setSelectedDiff(record);
+                    logDiffView(record.id);
+                  }}
+                >
                   Details
                 </Button>
               </Space>
