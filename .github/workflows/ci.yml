@@ -121,6 +121,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      security-events: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -134,6 +135,12 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@0c1e6e2d3e9f0c3e3f1b3f1d5e1f3c7d9e5a2b8 # v3.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
