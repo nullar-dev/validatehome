@@ -86,6 +86,28 @@ const statusLabels: Record<string, string> = {
   coming_soon: "Coming Soon",
 };
 
+type ProgramBenefit = {
+  id: string;
+  type: string;
+  percentage: number | null;
+  maxAmount: string | null;
+  description: string | null;
+};
+
+const benefitTypeLabels: Record<string, string> = {
+  tax_credit: "Tax Credit",
+  rebate: "Rebate",
+  grant: "Grant",
+};
+
+function formatBenefitLabel(benefit: ProgramBenefit): string {
+  const typeLabel = benefitTypeLabels[benefit.type] ?? "Benefit";
+  const percentageLabel = benefit.percentage !== null ? ` - ${benefit.percentage}%` : "";
+  const maxAmountLabel =
+    benefit.maxAmount !== null ? ` up to $${Number(benefit.maxAmount).toLocaleString()}` : "";
+  return `${typeLabel}${percentageLabel}${maxAmountLabel}`;
+}
+
 export default async function ProgramPage({ params }: Props) {
   const { country, slug } = await params;
   const dbUrl = process.env.DATABASE_URL;
@@ -210,29 +232,10 @@ export default async function ProgramPage({ params }: Props) {
               {programBenefits.length > 0 ? (
                 <ul className="space-y-3">
                   {programBenefits.map((benefit) => {
-                    const b = benefit as {
-                      id: string;
-                      type: string;
-                      percentage: number | null;
-                      maxAmount: string | null;
-                      description: string | null;
-                    };
-                    const benefitTypeLabel =
-                      b.type === "tax_credit"
-                        ? "Tax Credit"
-                        : b.type === "rebate"
-                          ? "Rebate"
-                          : b.type === "grant"
-                            ? "Grant"
-                            : "Benefit";
-                    const percentageLabel = b.percentage !== null ? ` - ${b.percentage}%` : "";
-                    const maxAmountLabel =
-                      b.maxAmount !== null ? ` up to $${Number(b.maxAmount).toLocaleString()}` : "";
+                    const b = benefit as ProgramBenefit;
                     return (
                       <li key={b.id} className="rounded-md bg-muted p-3">
-                        <div className="font-medium">
-                          {`${benefitTypeLabel}${percentageLabel}${maxAmountLabel}`}
-                        </div>
+                        <div className="font-medium">{formatBenefitLabel(b)}</div>
                         <div className="mt-1 text-sm text-muted-foreground">{b.description}</div>
                       </li>
                     );

@@ -1,13 +1,13 @@
 import type { Context, Next } from "hono";
 
-const DEFAULT_ALLOWED_ORIGINS =
-  "http://localhost:3000,http://localhost:3001,https://validatehome.com,https://www.validatehome.com";
+const DEFAULT_ALLOWED_ORIGINS = "https://validatehome.com,https://www.validatehome.com";
 const ALLOWED_ORIGINS = new Set(
   (process.env.ALLOWED_ORIGINS ?? DEFAULT_ALLOWED_ORIGINS)
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
 );
+const LOOPBACK_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
 
 export async function csrfMiddleware(c: Context, next: Next): Promise<Response | undefined> {
   const method = c.req.method.toUpperCase();
@@ -41,7 +41,10 @@ export async function csrfMiddleware(c: Context, next: Next): Promise<Response |
     );
   }
 
-  if (!ALLOWED_ORIGINS.has(requestOrigin)) {
+  const isAllowedLoopback =
+    process.env.NODE_ENV !== "production" && LOOPBACK_ORIGIN_PATTERN.test(requestOrigin);
+
+  if (!ALLOWED_ORIGINS.has(requestOrigin) && !isAllowedLoopback) {
     return c.json(
       {
         type: "https://validatehome.com/errors/csrf",
