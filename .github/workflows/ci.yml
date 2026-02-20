@@ -217,12 +217,9 @@ jobs:
           docker compose ps
 
       - name: Run migrations
-        env:
-          DATABASE_URL: postgresql://validatehome:validatehome@127.0.0.1:5432/validatehome
-          POSTGRES_USER: validatehome
-          POSTGRES_PASSWORD: validatehome
-          POSTGRES_DB: validatehome
-        run: pnpm db:migrate
+        run: |
+          echo "DATABASE_URL=postgresql://validatehome:validatehome@127.0.0.1:5432/validatehome" > packages/db/.env
+          pnpm db:migrate
 
       - name: Start web app
         run: |
