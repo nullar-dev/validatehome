@@ -206,10 +206,11 @@ jobs:
       - name: Start services
         run: |
           cd infra
-          docker compose down --volumes 2>/dev/null || true
+          docker compose rm -f --volumes 2>/dev/null || true
           docker compose up -d
           for i in {1..60}; do
             if docker compose ps | grep -q "postgres.*running"; then
+              sleep 5
               break
             fi
             sleep 1
