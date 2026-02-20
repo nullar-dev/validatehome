@@ -220,8 +220,8 @@ jobs:
       - name: Run migrations
         run: |
           echo "DATABASE_URL=postgresql://validatehome:validatehome@127.0.0.1:5432/validatehome" > packages/db/.env
-          pnpm --filter @validatehome/db exec psql -U validatehome -d validatehome -c "DROP DATABASE IF EXISTS validatehome;" 2>/dev/null || true
-          pnpm --filter @validatehome/db exec psql -U validatehome -d postgres -c "CREATE DATABASE validatehome;" 2>/dev/null || true
+          cd infra && docker compose exec -T postgres psql -U validatehome -c "DROP DATABASE IF EXISTS validatehome;" 2>/dev/null || true
+          cd infra && docker compose exec -T postgres psql -U validatehome -c "CREATE DATABASE validatehome;" 2>/dev/null || true
           pnpm db:migrate
 
       - name: Start web app
