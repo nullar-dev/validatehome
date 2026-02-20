@@ -81,6 +81,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["**/scripts/*.ts", "**/scripts/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
     }
   ]
 }

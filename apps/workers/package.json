@@ -19,6 +19,8 @@
     "drill:resilience": "tsx src/scripts/drill-resilience.ts",
     "benchmark:diff": "tsx src/scripts/benchmark-diff.ts",
     "report:kpis": "tsx src/scripts/report-kpis.ts",
+    "search:sync": "tsx src/scripts/search-sync.ts",
+    "search:health": "tsx src/scripts/search-health.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -27,7 +29,8 @@
     "@validatehome/shared": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.6.16",
-    "inngest": "^3.27.6"
+    "inngest": "^3.27.6",
+    "meilisearch": "^0.55.0"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",

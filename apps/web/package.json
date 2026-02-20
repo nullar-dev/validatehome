@@ -10,17 +10,21 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "lighthouse": "lhci autorun",
     "clean": "rm -rf .next"
   },
   "dependencies": {
     "@validatehome/calculator": "workspace:*",
+    "@validatehome/db": "workspace:*",
     "@validatehome/shared": "workspace:*",
     "@validatehome/ui": "workspace:*",
+    "drizzle-orm": "^0.45.1",
     "next": "^16.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.14.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.2.3",
     "@types/react": "^19.0.0",

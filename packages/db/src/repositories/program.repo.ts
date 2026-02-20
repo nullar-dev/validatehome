@@ -17,6 +17,8 @@ export interface ProgramFilters {
   country?: CountryCode;
   status?: Program["status"];
   categoryId?: string;
+  search?: string;
+  updatedSince?: Date;
 }
 
 function getProgramFilterConditions(filters?: ProgramFilters): SQL[] {
@@ -30,6 +32,18 @@ function getProgramFilterConditions(filters?: ProgramFilters): SQL[] {
   }
   if (filters?.categoryId) {
     conditions.push(eq(programCategories.categoryId, filters.categoryId));
+  }
+  if (filters?.updatedSince) {
+    conditions.push(sql`${programs.updatedAt} >= ${filters.updatedSince}`);
+  }
+  if (filters?.search && filters.search.trim().length > 0) {
+    const q = `%${filters.search.toLowerCase()}%`;
+    conditions.push(
+      sql`(
+        lower(${programs.name}) like ${q}
+        or lower(coalesce(${programs.description}, '')) like ${q}
+      )`,
+    );
   }
 
   return conditions;

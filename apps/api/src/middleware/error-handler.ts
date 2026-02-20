@@ -6,14 +6,29 @@ import {
 } from "@validatehome/shared";
 import type { Context, Next } from "hono";
 
+/**
+ * Generates a unique trace ID for request tracking.
+ * Uses cryptographically secure random UUID.
+ * @returns A trace ID string with UUID
+ */
 function generateTraceId(): string {
-  return `trace-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  return `trace-${crypto.randomUUID()}`;
 }
 
+/**
+ * Configuration options for the error handler middleware.
+ */
 export interface ErrorHandlerConfig {
+  /** Whether to include stack traces in error responses (default: false) */
   includeStackTrace?: boolean;
 }
 
+/**
+ * Middleware that catches unhandled errors and converts them to RFC 9457 Problem Detail responses.
+ * Also handles already-serialized JSON error responses to ensure consistent format.
+ * @param config - Configuration options for error handling
+ * @returns Hono middleware function
+ */
 export function errorHandler(config: ErrorHandlerConfig = {}) {
   return async (c: Context, next: Next) => {
     await next();

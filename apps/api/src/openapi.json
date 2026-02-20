@@ -1,0 +1,407 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ValidateHome API",
+    "description": "B2B API for accessing home upgrade incentive and rebate data across US, UK, Australia, and Canada.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "ValidateHome API Support",
+      "email": "api@validatehome.com"
+    },
+    "license": {
+      "name": "Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.validatehome.com/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:4000/v1",
+      "description": "Development server"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/programs": {
+      "get": {
+        "summary": "List programs",
+        "description": "Get a paginated list of incentive programs. Supports filtering by country, category, status, and search.",
+        "operationId": "listPrograms",
+        "parameters": [
+          {
+            "name": "jurisdiction",
+            "in": "query",
+            "description": "Filter by country code (US, UK, AU, CA)",
+            "schema": { "type": "string", "enum": ["US", "UK", "AU", "CA"] }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category (heat-pump, solar, insulation, battery, ev-charger)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by program status",
+            "schema": {
+              "type": "string",
+              "enum": ["open", "waitlist", "reserved", "funded", "closed", "coming_soon"]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search in program name and description",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number (default 1)",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Items per page (max 100, default 20)",
+            "schema": { "type": "integer", "default": 20, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Program" }
+                    },
+                    "meta": { "$ref": "#/components/schemas/PaginationMeta" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/programs/{idOrSlug}": {
+      "get": {
+        "summary": "Get program by ID or slug",
+        "description": "Get detailed information about a specific program including benefits, eligibility rules, and categories.",
+        "operationId": "getProgram",
+        "parameters": [
+          {
+            "name": "idOrSlug",
+            "in": "path",
+            "required": true,
+            "description": "Program UUID or slug",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/ProgramDetail" },
+                    "meta": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/programs/{id}/history": {
+      "get": {
+        "summary": "Get program version history",
+        "description": "Get the version history of a program for audit and tracking purposes.",
+        "operationId": "getProgramHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Program UUID",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/programs/changes": {
+      "get": {
+        "summary": "Get recent changes",
+        "description": "Get a feed of programs that have been updated since a given date.",
+        "operationId": "getChanges",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "ISO 8601 timestamp to get changes since",
+            "schema": { "type": "string", "format": "date-time" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "summary": "Search programs",
+        "description": "Full-text search across programs. Note: This endpoint requires Meilisearch integration.",
+        "operationId": "searchPrograms",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search query (min 2 characters)",
+            "schema": { "type": "string", "minLength": 2 }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "description": "Filter by country code",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter by category",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/calculator": {
+      "post": {
+        "summary": "Calculate net cost",
+        "description": "Calculate the net cost of a home upgrade project after applying available incentives.",
+        "operationId": "calculateNetCost",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalculatorInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Calculation result"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key authentication. Get your API key from the dashboard."
+      }
+    },
+    "schemas": {
+      "Program": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["open", "waitlist", "reserved", "funded", "closed", "coming_soon"]
+          },
+          "programUrl": { "type": "string" },
+          "budgetTotal": { "type": "string" },
+          "budgetRemaining": { "type": "string" },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time" },
+          "applicationDeadline": { "type": "string", "format": "date-time" },
+          "lastVerifiedAt": { "type": "string", "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProgramDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Program" },
+          {
+            "type": "object",
+            "properties": {
+              "jurisdiction": { "type": "object" },
+              "benefits": { "type": "array" },
+              "eligibilityRules": { "type": "array" },
+              "categories": { "type": "array" }
+            }
+          }
+        ]
+      },
+      "CalculatorInput": {
+        "type": "object",
+        "required": ["stickerPrice", "country", "category"],
+        "properties": {
+          "stickerPrice": { "type": "number", "minimum": 0 },
+          "country": { "type": "string", "enum": ["US", "UK", "AU", "CA"] },
+          "category": {
+            "type": "string",
+            "enum": ["heat-pump", "solar", "insulation", "battery", "ev-charger"]
+          },
+          "postalCode": { "type": "string" },
+          "householdIncome": { "type": "number" },
+          "estimatedTaxLiability": { "type": "number" }
+        }
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "filters": { "type": "object" }
+        }
+      },
+      "ProblemDetail": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "title": { "type": "string" },
+          "status": { "type": "integer" },
+          "detail": { "type": "string" },
+          "traceId": { "type": "string" }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad Request",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Not Found",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Too Many Requests",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Service Unavailable",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      }
+    }
+  }
+}

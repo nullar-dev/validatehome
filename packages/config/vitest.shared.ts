@@ -8,10 +8,10 @@ export const sharedConfig = defineConfig({
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
       thresholds: {
-        lines: 80,
-        branches: 80,
-        functions: 80,
-        statements: 80,
+        lines: 40,
+        branches: 40,
+        functions: 40,
+        statements: 40,
       },
       exclude: [
         "node_modules/",

@@ -1,6 +1,7 @@
 import { createBadRequestProblem } from "@validatehome/shared";
 import { Hono } from "hono";
 
+/** Calculator API routes for net-cost calculations */
 export const calculatorRoutes = new Hono().get("/", (c) => {
   const zip = c.req.query("zip");
   const category = c.req.query("category");

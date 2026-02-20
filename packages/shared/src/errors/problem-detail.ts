@@ -100,6 +100,56 @@ export function createInternalErrorProblem(detail: string, traceId?: string): Pr
   });
 }
 
+export function createUnauthorizedProblem(detail: string, traceId?: string): ProblemDetail {
+  return createProblemDetail({
+    type: PROBLEM_TYPES.UNAUTHORIZED,
+    title: "Unauthorized",
+    status: 401,
+    detail,
+    traceId,
+  });
+}
+
+export function createForbiddenProblem(detail: string, traceId?: string): ProblemDetail {
+  return createProblemDetail({
+    type: PROBLEM_TYPES.FORBIDDEN,
+    title: "Forbidden",
+    status: 403,
+    detail,
+    traceId,
+  });
+}
+
+export function createConflictProblem(detail: string, traceId?: string): ProblemDetail {
+  return createProblemDetail({
+    type: PROBLEM_TYPES.CONFLICT,
+    title: "Conflict",
+    status: 409,
+    detail,
+    traceId,
+  });
+}
+
+export function createServiceUnavailableProblem(detail: string, traceId?: string): ProblemDetail {
+  return createProblemDetail({
+    type: PROBLEM_TYPES.SERVICE_UNAVAILABLE,
+    title: "Service Unavailable",
+    status: 503,
+    detail,
+    traceId,
+  });
+}
+
+export function createTooManyRequestsProblem(detail: string, traceId?: string): ProblemDetail {
+  return createProblemDetail({
+    type: PROBLEM_TYPES.RATE_LIMIT_EXCEEDED,
+    title: "Too Many Requests",
+    status: 429,
+    detail,
+    traceId,
+  });
+}
+
 export function isProblemDetail(obj: unknown): obj is ProblemDetail {
   if (typeof obj !== "object" || obj === null) return false;
   const o = obj as Record<string, unknown>;

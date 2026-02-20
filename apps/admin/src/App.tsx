@@ -1,11 +1,18 @@
 import { RefineThemes, ThemedLayout, useNotificationProvider } from "@refinedev/antd";
-import { Refine } from "@refinedev/core";
+import { Authenticated, Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/react-router";
 import dataProvider from "@refinedev/simple-rest";
 import { App as AntdApp, ConfigProvider } from "antd";
 import { BrowserRouter, Route, Routes } from "react-router";
 import "@refinedev/antd/dist/reset.css";
-import { RulesList, RuleTester } from "./components/rules";
+import { authProvider } from "./auth-provider.js";
+import { RulesList, RuleTester } from "./components/rules/index.js";
+import { DiffList } from "./pages/diffs/list.js";
+import { LoginPage } from "./pages/login/index.js";
+import { ProgramCreate } from "./pages/programs/create.js";
+import { ProgramEdit } from "./pages/programs/edit.js";
+import { ProgramList } from "./pages/programs/list.js";
+import { ProgramShow } from "./pages/programs/show.js";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000/v1";
 
@@ -30,27 +37,20 @@ export function App() {
           <Refine
             routerProvider={routerProvider}
             dataProvider={dataProvider(API_URL)}
-            notificationProvider={useNotificationProvider}
+            authProvider={authProvider}
+            notificationProvider={useNotificationProvider()}
             resources={[
               {
                 name: "programs",
                 list: "/programs",
                 show: "/programs/:id",
                 edit: "/programs/:id/edit",
-              },
-              {
-                name: "sources",
-                list: "/sources",
-                show: "/sources/:id",
+                create: "/programs/create",
               },
               {
                 name: "diffs",
                 list: "/diffs",
                 show: "/diffs/:id",
-              },
-              {
-                name: "api-keys",
-                list: "/api-keys",
               },
               {
                 name: "rules",
@@ -63,8 +63,20 @@ export function App() {
             ]}
           >
             <Routes>
-              <Route element={<ThemedLayout Title={AppTitle} />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                element={
+                  <Authenticated fallback={<LoginPage />} key="auth-layout">
+                    <ThemedLayout Title={AppTitle} />
+                  </Authenticated>
+                }
+              >
                 <Route index element={<DashboardPage />} />
+                <Route path="programs" element={<ProgramList />} />
+                <Route path="programs/create" element={<ProgramCreate />} />
+                <Route path="programs/:id" element={<ProgramShow />} />
+                <Route path="programs/:id/edit" element={<ProgramEdit />} />
+                <Route path="diffs" element={<DiffList />} />
                 <Route path="rules" element={<RulesList />} />
                 <Route path="rules-tester" element={<RuleTester />} />
               </Route>
